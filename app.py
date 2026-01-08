@@ -1,5 +1,5 @@
 from flask import Flask, render_template, jsonify
-import Chemistry from
+
 app = Flask(__name__)
 
 
@@ -30,7 +30,7 @@ def root():
     return render_template("base.html")
 
 #Getting the protein - Nyosha 
-@app.route('/api/proteins', method=['GET'])
+@app.route('/api/proteins', methods=['GET'])
 def protein_and_drugs_jsonify():
     return jsonify(proteins)
     
