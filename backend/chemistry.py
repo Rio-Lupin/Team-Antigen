@@ -28,3 +28,19 @@ def calculate_drug_likeness(smiles: str):
         score = QED.qed(mol) # Calculate the QED score
         return round(score, 3)
     return None
+
+
+drug_list=["Sunitinib", "Cabozantinib"]
+
+
+print("Enter Protein:")
+protein = input()
+
+if protein == "VEGFR" or protein == "vegfr":
+        print( drug_list[0], drug_list[1])
+
+elif protein == "PDGFR" or protein == "pdgfr":
+        print( drug_list[0], drug_list[1])
+    
+else:
+    print("No drugs found for this protein")
