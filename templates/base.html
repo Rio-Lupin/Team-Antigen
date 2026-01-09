@@ -39,14 +39,31 @@
 
     /* Keep analytics box size stable, no scroll */
     .analytics-card {
-      max-height: 420px;
+      max-height: 520px;
       overflow: hidden;
     }
 
     .analytics-card .card-body {
-      max-height: 360px;
+      max-height: 490px;
       overflow: hidden;
     }
+
+    /* Comfortable spacing inside analytics */
+    .analytics-card .progress { height: 10px !important; margin-bottom: 10px; }
+    .analytics-card .list-group-item { padding: .5rem .75rem; }
+    .analytics-card .fw-semibold, .analytics-card h6 { font-size: .95rem; }
+    .analytics-card small { font-size: .8rem; }
+    .analytics-card .mb-4 { margin-bottom: 1.2rem !important; }
+    .analytics-card .mt-3 { margin-top: 1rem !important; }
+    .analytics-card .border-bottom { padding-bottom: .5rem !important; }
+    .analytics-card .quick-guide { line-height: 1.25; }
+    /* Extra bottom padding for caption bullets */
+    .analytics-card .quick-guide {
+      padding-bottom: 24px;
+    }
+
+    /* Space icon to the right of pass/fail text */
+    #lipinski-status i { margin-left: 4px; }
   </style>
 
   {% block styles %}
@@ -107,31 +124,52 @@
                 <h5 class="border-bottom pb-2">Molecular Analytics</h5>
 
                 <div class="mb-4 mt-3">
-                  <label class="form-label d-flex justify-content-between">
-                    Drug-Likeness (QED) <span id="qed-val" class="fw-bold">0.00</span>
-                  </label>
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <div class="fw-semibold">Drug-Likeness (QED)</div>
+                    </div>
+                    <span id="qed-val" class="fw-bold">0.00</span>
+                  </div>
                   <div class="progress" style="height: 10px;">
-                    <div id="qed-bar" class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
+                    <div id="qed-bar" class="progress-bar bg-primary" role="progressbar" style="width: 0%"></div>
                   </div>
                 </div>
 
                 <div class="mb-4">
-                  <label class="form-label d-flex justify-content-between">
-                    Ease of Synthesis (SAScore) <span id="sa-val" class="fw-bold">0.00</span>
-                  </label>
-                  <div class="progress" style="height: 10px;">
-                    <div id="sa-bar" class="progress-bar bg-warning" role="progressbar" style="width: 0%"></div>
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <div class="fw-semibold">Ease of Synthesis (SAScore)</div>
+                    </div>
+                    <span id="sa-val" class="fw-bold">0.00</span>
                   </div>
-                  <small class="text-muted">Lower is better (1-10 range)</small>
+                  <div class="progress" style="height: 10px;">
+                    <div id="sa-bar" class="progress-bar bg-primary" role="progressbar" style="width: 0%"></div>
+                  </div>
                 </div>
 
                 <div class="mb-4">
-                  <h6>Lipinski's Rule of Five</h6>
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <h6 class="fw-semibold">Lipinski's Rule of Five</h6>
+                    </div>
+                    <div class="d-flex align-items-center mb-0">
+                      <span id="lipinski-status" class="small"></span>
+                    </div>
+                  </div>
                   <ul class="list-group list-group-flush small">
                     <li class="list-group-item d-flex justify-content-between">MW: <span id="mw-val">-</span></li>
                     <li class="list-group-item d-flex justify-content-between">LogP: <span id="logp-val">-</span></li>
-                    <li class="list-group-item d-flex justify-content-between">H-Donors: <span id="hbd-val">-</span>
-                    </li>
+                    <li class="list-group-item d-flex justify-content-between">H-Donors: <span id="hbd-val">-</span></li>
+                    <li class="list-group-item d-flex justify-content-between">H-Acceptors: <span id="hba-val">-</span></li>
+                  </ul>
+                </div>
+
+                <div class="quick-guide">
+                  <h6 class="mb-1">Quick Guide</h6>
+                  <ul class="text-muted small mb-0 ps-3">
+                    <li>QED: quantitative drug-likeness; higher (0-1) is more drug-like.</li>
+                    <li>SAScore: synthesis feasibility; lower (1-10) is easier/cheaper to make.</li>
+                    <li>Lipinski: oral drug-likeness checklist (MW ≤ 500, LogP ≤ 5, HBD ≤ 5, HBA ≤ 10).</li>
                   </ul>
                 </div>
 
@@ -305,11 +343,19 @@
         document.getElementById('mw-val').innerText = Math.round(lipinski.molecular_weight || 0);
         document.getElementById('logp-val').innerText = (lipinski.logP || 0).toFixed(2);
         document.getElementById('hbd-val').innerText = Math.round(lipinski.h_donors || 0);
+        document.getElementById('hba-val').innerText = Math.round(lipinski.h_acceptors || 0);
+        const statusEl = document.getElementById('lipinski-status');
+        statusEl.innerHTML = lipinski.complies
+          ? 'Pass <i class="bi bi-check-circle-fill text-success"></i>'
+          : 'Fail <i class="bi bi-x-circle-fill text-danger"></i>';
       } else {
         // Fallback for old API structure
         document.getElementById('mw-val').innerText = Math.round(data.mw || 0);
         document.getElementById('logp-val').innerText = (data.logp || 0).toFixed(2);
         document.getElementById('hbd-val').innerText = Math.round(data.hbd || 0);
+        document.getElementById('hba-val').innerText = Math.round(data.hba || 0);
+        const statusEl = document.getElementById('lipinski-status');
+        statusEl.innerHTML = 'Not available <i class="bi bi-x-circle-fill text-danger"></i>';
       }
       
       // Handle Structural Alerts (PAINS)
