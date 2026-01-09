@@ -24,6 +24,7 @@
       height: 100%;
       overflow: hidden;
     }
+
     /* SVG sizing - fit nicely in card-body */
     .card-body svg {
       max-width: 100%;
@@ -49,21 +50,49 @@
     }
 
     /* Comfortable spacing inside analytics */
-    .analytics-card .progress { height: 10px !important; margin-bottom: 10px; }
-    .analytics-card .list-group-item { padding: .5rem .75rem; }
-    .analytics-card .fw-semibold, .analytics-card h6 { font-size: .95rem; }
-    .analytics-card small { font-size: .8rem; }
-    .analytics-card .mb-4 { margin-bottom: 1.2rem !important; }
-    .analytics-card .mt-3 { margin-top: 1rem !important; }
-    .analytics-card .border-bottom { padding-bottom: .5rem !important; }
-    .analytics-card .quick-guide { line-height: 1.25; }
+    .analytics-card .progress {
+      height: 10px !important;
+      margin-bottom: 10px;
+    }
+
+    .analytics-card .list-group-item {
+      padding: .5rem .75rem;
+    }
+
+    .analytics-card .fw-semibold,
+    .analytics-card h6 {
+      font-size: .95rem;
+    }
+
+    .analytics-card small {
+      font-size: .8rem;
+    }
+
+    .analytics-card .mb-4 {
+      margin-bottom: 1.2rem !important;
+    }
+
+    .analytics-card .mt-3 {
+      margin-top: 1rem !important;
+    }
+
+    .analytics-card .border-bottom {
+      padding-bottom: .5rem !important;
+    }
+
+    .analytics-card .quick-guide {
+      line-height: 1.25;
+    }
+
     /* Extra bottom padding for caption bullets */
     .analytics-card .quick-guide {
       padding-bottom: 24px;
     }
 
     /* Space icon to the right of pass/fail text */
-    #lipinski-status i { margin-left: 4px; }
+    #lipinski-status i {
+      margin-left: 4px;
+    }
   </style>
 
   {% block styles %}
@@ -76,6 +105,52 @@
     <div class="container">
 
       {% block content %}
+
+      <div class="modal fade" id="welcomeModal" tabindex="-1" aria-labelledby="welcomeModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+              <h5 class="modal-title" id="welcomeModalLabel">Antigen</h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <p>This tool displays drugs targeting proteins that drive the cancer: Renal Cell Carcinoma.
+                A Chemist looking to develop a more effective drug may use our tool to change the molecular structure of
+                an existing drug compound and modify it to create possible new iteration of the drug. Checking for the
+                new structure’s
+                stability, the drug likeness, Lipinski Rule of Five and generating the new SMILE text</p>
+              <p><u>
+                  <h3>Drug Likeness (QED):</h3>
+                </u> Is an overall assessment of a compound's potential to succeed in clinical trials
+                and become an effective drug.
+                It is defined by the similarity of a compound's structural features and physicochemical properties to
+                those of existing, marketed drugs. Higher the Score the better
+                </br>
+                </br>
+                <u>
+                  <h3>Ease of Synthesis:</h3>
+                </u> How simple or difficult it is to physically manufacture a chemical compound in a
+                laboratory.
+                </br>
+                </br>
+                <u>
+                  <h3>Lipinski Rule of 5:</h3>
+                </u> Four criteria to predict whether a chemical compound has the physicochemical
+                properties to be an effective orally active drug in humans.
+                The rule is based on the observation that most orally administered drugs are relatively small and
+                moderately lipophilic molecules.
+                </br>
+                </br>
+                Molecular Weight | Lipophilicity (logP) | Hydrogen Bond Donors (HBD) | Hydrogen Bond Acceptors (HBA)
+              </p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Explore Now</button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div class="position-relative pt-5">
         <div class="position-absolute top-0 end-0 mt-2 me-2">
@@ -159,17 +234,22 @@
                   <ul class="list-group list-group-flush small">
                     <li class="list-group-item d-flex justify-content-between">MW: <span id="mw-val">-</span></li>
                     <li class="list-group-item d-flex justify-content-between">LogP: <span id="logp-val">-</span></li>
-                    <li class="list-group-item d-flex justify-content-between">H-Donors: <span id="hbd-val">-</span></li>
-                    <li class="list-group-item d-flex justify-content-between">H-Acceptors: <span id="hba-val">-</span></li>
+                    <li class="list-group-item d-flex justify-content-between">H-Donors: <span id="hbd-val">-</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">H-Acceptors: <span id="hba-val">-</span>
+                    </li>
                   </ul>
                 </div>
 
                 <div class="quick-guide">
                   <h6 class="mb-1">Quick Guide</h6>
                   <ul class="text-muted small mb-0 ps-3">
-                    <li>QED: scoring system 0 to 1 that assesses how similar a molecule's properties are to those of known drugs (higher scores = more drug-like)</li>
-                    <li>SAScore: synthetic accessibility score estimates how easy a molecule is to make in a lab (lowerer score = higher feasibility)</li>
-                    <li>Lipinski's Ro5: a set of guidelines to predict if a compound is likely to be orally active (bioavailable) in humans (MW ≤ 500, LogP ≤ 5, HBD ≤ 5, HBA ≤ 10)</li>
+                    <li>QED: scoring system 0 to 1 that assesses how similar a molecule's properties are to those of
+                      known drugs (higher scores = more drug-like)</li>
+                    <li>SAScore: synthetic accessibility score estimates how easy a molecule is to make in a lab
+                      (lowerer score = higher feasibility)</li>
+                    <li>Lipinski's Ro5: a set of guidelines to predict if a compound is likely to be orally active
+                      (bioavailable) in humans (MW ≤ 500, LogP ≤ 5, HBD ≤ 5, HBA ≤ 10)</li>
                   </ul>
                 </div>
 
@@ -178,24 +258,24 @@
                 </div>
               </div>
             </div>
-              </div>
-            </div>
           </div>
         </div>
-
-        {% endblock content %}
-
+      </div>
     </div>
-    <div>
 
-      {% block footer %}
-      <footer class="d-flex flex-column align-items-center fs-6 text-body-tertiary py-5">
-        <span>Stack the Future 2026 - New York, New York</span>
-        <span>Copyright &copy; Schrodinger Inc. 2026</span>
-      </footer>
-      {% endblock footer %}
+    {% endblock content %}
 
-    </div>
+  </div>
+  <div>
+
+    {% block footer %}
+    <footer class="d-flex flex-column align-items-center fs-6 text-body-tertiary py-5">
+      <span>Stack the Future 2026 - New York, New York</span>
+      <span>Copyright &copy; Schrodinger Inc. 2026</span>
+    </footer>
+    {% endblock footer %}
+
+  </div>
   </div>
 
   {% block scripts %}
@@ -204,6 +284,23 @@
     let currentDrugSmiles = {};
     let currentDrugMetadata = {};
 
+
+    //Onload Modal
+    document.addEventListener('DOMContentLoaded', () => {
+      // --- Existing logic starts here ---
+
+      // Initialize and show the Welcome Modal automatically on page load
+      const welcomeModalEl = document.getElementById('welcomeModal');
+      if (welcomeModalEl) {
+        const welcomeModal = new bootstrap.Modal(welcomeModalEl);
+        welcomeModal.show();
+      }
+
+      // --- Existing swap-btn and close-drug-btn logic continues below ---
+      document.getElementById('apply-swap-btn')?.addEventListener('click', async () => {
+        // ... existing swap code ...
+      });
+    });
     //Display molecules & SVG's
     document.getElementById('protein-search-field').addEventListener('input', function (e) {
       const proteinName = e.target.value.trim();
@@ -330,14 +427,14 @@
       document.getElementById('qed-val').innerText = qed.toFixed(2);
       const qedPercent = Math.round(qed * 100);
       document.getElementById('qed-bar').style.width = qedPercent + '%';
-      
+
       // Handle SAScore (Stability/Ease of Synthesis) - 1 to 10 scale (lower is better)
       const saScore = data.stability_score || 0;
       document.getElementById('sa-val').innerText = saScore.toFixed(1);
       // For SAScore: invert it for progress bar (10 is hardest = 0%, 1 is easiest = 100%)
       const saPercent = Math.round(((10 - saScore) / 9) * 100);
       document.getElementById('sa-bar').style.width = Math.max(0, Math.min(100, saPercent)) + '%';
-      
+
       // Handle Lipinski's Rule of Five
       if (data.lipinski_compliance) {
         const lipinski = data.lipinski_compliance;
@@ -358,7 +455,7 @@
         const statusEl = document.getElementById('lipinski-status');
         statusEl.innerHTML = 'Not available <i class="bi bi-x-circle-fill text-danger"></i>';
       }
-      
+
       // Handle Structural Alerts (PAINS)
       const alertContainer = document.getElementById('alert-container');
       if (data.structural_alerts && data.structural_alerts.has_alert) {
@@ -372,17 +469,17 @@
     // Attach click handlers to drug cards
     function attachDrugCardClickHandlers() {
       document.querySelectorAll('.drug-card').forEach(card => {
-        card.addEventListener('click', function(e) {
+        card.addEventListener('click', function (e) {
           // Ignore clicks on clickable atoms
           if (e.target.closest('.clickable-atom')) {
             return;
           }
-          
+
           const drugName = this.getAttribute('data-drug-name');
           const smiles = this.getAttribute('data-drug-smiles');
-          
+
           if (!drugName) return;
-          
+
           // Fetch and display analytics
           fetch(`/api/molecule-metadata/${drugName}`)
             .then(res => res.json())
@@ -410,9 +507,9 @@
 
       // Add click handlers to all clickable atom circles
       document.querySelectorAll('.clickable-atom').forEach(circle => {
-        circle.addEventListener('click', function(e) {
+        circle.addEventListener('click', function (e) {
           e.stopPropagation(); // Prevent drug card click
-          
+
           const atomId = this.getAttribute('data-atom-id');
           const card = this.closest('.card');
           const drugName = card.getAttribute('data-drug-name');
@@ -431,7 +528,7 @@
 
           // Get position of clicked circle for dropdown placement
           const rect = this.getBoundingClientRect();
-          
+
           // Show dropdown menu near the clicked atom
           showRGroupDropdown(rect, drugName, smiles, atomId, metadata.r_group_options);
         });
@@ -473,7 +570,7 @@
         option.className = 'dropdown-item';
         option.href = '#';
         option.textContent = groupName;
-        option.addEventListener('click', function(e) {
+        option.addEventListener('click', function (e) {
           e.preventDefault();
           applyRGroupSubstitution(drugName, smiles, atomId, groupName);
           dropdown.remove();
@@ -485,12 +582,12 @@
       const divider = document.createElement('div');
       divider.className = 'dropdown-divider';
       dropdown.appendChild(divider);
-      
+
       const cancelOption = document.createElement('a');
       cancelOption.className = 'dropdown-item text-danger';
       cancelOption.href = '#';
       cancelOption.textContent = 'Cancel';
-      cancelOption.addEventListener('click', function(e) {
+      cancelOption.addEventListener('click', function (e) {
         e.preventDefault();
         dropdown.remove();
       });
@@ -514,10 +611,10 @@
     async function applyRGroupSubstitution(drugName, smiles, atomId, rGroupName) {
       try {
         // Find the drug card
-        const card = Array.from(document.querySelectorAll('.card')).find(c => 
+        const card = Array.from(document.querySelectorAll('.card')).find(c =>
           c.getAttribute('data-drug-name') === drugName
         );
-        
+
         if (!card) {
           alert('Could not find drug card');
           return;
@@ -556,28 +653,28 @@
 
         if (data.success) {
           const container = card.querySelector('.card-body');
-          
+
           // Update the SVG
           if (data.molecule_svg) {
             container.innerHTML = data.molecule_svg;
-            
+
             // Update stored SMILES
             currentDrugSmiles[drugName] = data.new_smiles;
-            
+
             // Update card data attribute
             card.setAttribute('data-drug-smiles', data.new_smiles);
-            
+
             // Update metadata
             if (currentDrugMetadata[drugName]) {
               currentDrugMetadata[drugName].molecule_svg = data.molecule_svg;
             }
-            
+
             // Update drug name to show "drugname-test" and SMILES
             const cardFooter = card.querySelector('.card-footer');
             if (cardFooter) {
               const cardTitle = cardFooter.querySelector('.card-title');
               const smilesText = cardFooter.querySelector('small');
-              
+
               if (cardTitle) {
                 // Get original name (set when card is created, preserved for subsequent modifications)
                 let originalName = cardTitle.getAttribute('data-original-name');
@@ -592,21 +689,21 @@
                   cardTitle.textContent = `${originalName}-test`;
                 }
               }
-              
+
               if (smilesText && data.new_smiles) {
                 // Update SMILES string to show the modified molecule
                 smilesText.textContent = data.new_smiles;
               }
             }
-            
+
             // Re-attach click handlers to new SVG
             setTimeout(() => {
               attachAtomClickHandlers();
             }, 100);
-            
+
             // Update analytics
             updateAnalytics(data);
-            
+
             console.log(`Applied ${rGroupName} to atom ${atomId} of ${drugName}`);
           }
         } else {
