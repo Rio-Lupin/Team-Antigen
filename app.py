@@ -1,10 +1,15 @@
 from flask import Flask, render_template, jsonify, request  # type: ignore[import-untyped]
+from rdkit import Chem  # type: ignore[import-untyped]
 from backend.chemistry import (
     get_ui_metadata,
     validate_and_optimize_compound,
     get_drugs_by_protein,
     get_smiles_by_drug_name,
     get_all_drugs,
+    calculate_stability_score,
+    calculate_drug_likeness,
+    check_lipinski_rules,
+    check_structural_alerts,
 )
 
 app = Flask(__name__)
@@ -70,6 +75,19 @@ def get_molecule_ui_data(compound_id):
     try:
         # calls the get_ui_metadata function from backend module
         metadata = get_ui_metadata(smiles)
+
+        # Add base analytics for the unmodified drug so the UI can show metrics immediately
+        mol = Chem.MolFromSmiles(smiles)
+        if mol:
+            metadata.update(
+                {
+                    "stability_score": calculate_stability_score(mol),
+                    "drug_likeness": calculate_drug_likeness(mol),
+                    "lipinski_compliance": check_lipinski_rules(mol),
+                    "structural_alerts": check_structural_alerts(mol),
+                }
+            )
+
         return jsonify(metadata)
     except Exception as e:
         app.logger.exception(

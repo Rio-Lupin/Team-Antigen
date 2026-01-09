@@ -24,6 +24,29 @@
       height: 100%;
       overflow: hidden;
     }
+    /* SVG sizing - fit nicely in card-body */
+    .card-body svg {
+      max-width: 100%;
+      max-height: 300px;
+      display: block;
+      margin: 0 auto;
+    }
+
+    /* Ensure card-body doesn't overflow */
+    .card-body {
+      overflow: visible;
+    }
+
+    /* Keep analytics box size stable, no scroll */
+    .analytics-card {
+      max-height: 420px;
+      overflow: hidden;
+    }
+
+    .analytics-card .card-body {
+      max-height: 360px;
+      overflow: hidden;
+    }
   </style>
 
   {% block styles %}
@@ -73,93 +96,49 @@
           <input id="protein-search-field" class="form-control" type="text" placeholder="Type protein name...">
         </div>
 
-        <div id="drugResults"></div>
-
-
-        <!-- 
-        <div class="col-md-5">
-          <div class="card shadow-sm h-100">
-            <div class="card-body">
-              <h5 class="border-bottom pb-2">Molecular Analytics</h5>
-
-              <div class="mb-4 mt-3">
-                <label class="form-label d-flex justify-content-between">
-                  Drug-Likeness (QED) <span id="qed-val" class="fw-bold">0.00</span>
-                </label>
-                <div class="progress" style="height: 10px;">
-                  <div id="qed-bar" class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
-                </div>
-              </div>
-
-              <div class="mb-4">
-                <label class="form-label d-flex justify-content-between">
-                  Ease of Synthesis (SAScore) <span id="sa-val" class="fw-bold">0.00</span>
-                </label>
-                <div class="progress" style="height: 10px;">
-                  <div id="sa-bar" class="progress-bar bg-warning" role="progressbar" style="width: 0%"></div>
-                </div>
-                <small class="text-muted">Lower is better (1-10 range)</small>
-              </div>
-
-              <div class="mb-4">
-                <h6>Lipinski's Rule of Five</h6>
-                <ul class="list-group list-group-flush small">
-                  <li class="list-group-item d-flex justify-content-between">MW: <span id="mw-val">-</span></li>
-                  <li class="list-group-item d-flex justify-content-between">LogP: <span id="logp-val">-</span></li>
-                  <li class="list-group-item d-flex justify-content-between">H-Donors: <span id="hbd-val">-</span>
-                  </li>
-                </ul>
-              </div>
-
-              <div id="alert-container" class="alert alert-danger d-none">
-                <i class="bi bi-exclamation-triangle-fill"></i> PAINS Alert: <span id="alert-reason"></span>
-              </div>
-            </div>
+        <div class="row">
+          <div class="col-md-7">
+            <div id="drugResults"></div>
           </div>
-        </div>
-      </div>
 
-      <div id="drugResults"></div> -->
+          <div class="col-md-5">
+            <div class="card shadow-sm analytics-card">
+              <div class="card-body">
+                <h5 class="border-bottom pb-2">Molecular Analytics</h5>
 
-      </div>
+                <div class="mb-4 mt-3">
+                  <label class="form-label d-flex justify-content-between">
+                    Drug-Likeness (QED) <span id="qed-val" class="fw-bold">0.00</span>
+                  </label>
+                  <div class="progress" style="height: 10px;">
+                    <div id="qed-bar" class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
+                  </div>
+                </div>
 
+                <div class="mb-4">
+                  <label class="form-label d-flex justify-content-between">
+                    Ease of Synthesis (SAScore) <span id="sa-val" class="fw-bold">0.00</span>
+                  </label>
+                  <div class="progress" style="height: 10px;">
+                    <div id="sa-bar" class="progress-bar bg-warning" role="progressbar" style="width: 0%"></div>
+                  </div>
+                  <small class="text-muted">Lower is better (1-10 range)</small>
+                </div>
 
-      <div class="col-md-5">
-        <div class="card shadow-sm h-100">
-          <div class="card-body">
-            <h5 class="border-bottom pb-2">Molecular Analytics</h5>
+                <div class="mb-4">
+                  <h6>Lipinski's Rule of Five</h6>
+                  <ul class="list-group list-group-flush small">
+                    <li class="list-group-item d-flex justify-content-between">MW: <span id="mw-val">-</span></li>
+                    <li class="list-group-item d-flex justify-content-between">LogP: <span id="logp-val">-</span></li>
+                    <li class="list-group-item d-flex justify-content-between">H-Donors: <span id="hbd-val">-</span>
+                    </li>
+                  </ul>
+                </div>
 
-            <div class="mb-4 mt-3">
-              <label class="form-label d-flex justify-content-between">
-                Drug-Likeness (QED) <span id="qed-val" class="fw-bold">0.00</span>
-              </label>
-              <div class="progress" style="height: 10px;">
-                <div id="qed-bar" class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
+                <div id="alert-container" class="alert alert-danger d-none">
+                  <i class="bi bi-exclamation-triangle-fill"></i> PAINS Alert: <span id="alert-reason"></span>
+                </div>
               </div>
-            </div>
-
-            <div class="mb-4">
-              <label class="form-label d-flex justify-content-between">
-                Ease of Synthesis (SAScore) <span id="sa-val" class="fw-bold">0.00</span>
-              </label>
-              <div class="progress" style="height: 10px;">
-                <div id="sa-bar" class="progress-bar bg-warning" role="progressbar" style="width: 0%"></div>
-              </div>
-              <small class="text-muted">Lower is better (1-10 range)</small>
-            </div>
-
-            <div class="mb-4">
-              <h6>Lipinski's Rule of Five</h6>
-              <ul class="list-group list-group-flush small">
-                <li class="list-group-item d-flex justify-content-between">MW: <span id="mw-val">-</span></li>
-                <li class="list-group-item d-flex justify-content-between">LogP: <span id="logp-val">-</span></li>
-                <li class="list-group-item d-flex justify-content-between">H-Donors: <span id="hbd-val">-</span>
-                </li>
-              </ul>
-            </div>
-
-            <div id="alert-container" class="alert alert-danger d-none">
-              <i class="bi bi-exclamation-triangle-fill"></i> PAINS Alert: <span id="alert-reason"></span>
             </div>
           </div>
         </div>
@@ -225,8 +204,8 @@
 
             drugsWithMolecules.forEach(drug => {
               html += `
-            <div class="col-md-4 drug-container mb-3">
-              <div class="card">
+            <div class="col-md-12 drug-container mb-3">
+              <div class="card" onclick="handleDrugClick(event, '${drug.name}', '${drug.smiles}')">
                 <div class="card-body">
                   ${drug.svg}
                 </div>
@@ -295,11 +274,60 @@
 
     //Analytics
     function updateAnalytics(data) {
-      document.getElementById('qed-val').innerText = (data.drug_likeness || 0).toFixed(2);
-      document.getElementById('sa-val').innerText = (data.stability_score || 0).toFixed(1);
-      document.getElementById('mw-val').innerText = Math.round(data.mw || 0);
-      document.getElementById('logp-val').innerText = (data.logp || 0).toFixed(2);
-      document.getElementById('hbd-val').innerText = Math.round(data.hbd || 0);
+      // Handle QED (Drug-Likeness) - 0 to 1 scale
+      const qed = data.drug_likeness || 0;
+      document.getElementById('qed-val').innerText = qed.toFixed(2);
+      const qedPercent = Math.round(qed * 100);
+      document.getElementById('qed-bar').style.width = qedPercent + '%';
+      
+      // Handle SAScore (Stability/Ease of Synthesis) - 1 to 10 scale (lower is better)
+      const saScore = data.stability_score || 0;
+      document.getElementById('sa-val').innerText = saScore.toFixed(1);
+      // For SAScore: invert it for progress bar (10 is hardest = 0%, 1 is easiest = 100%)
+      const saPercent = Math.round(((10 - saScore) / 9) * 100);
+      document.getElementById('sa-bar').style.width = Math.max(0, Math.min(100, saPercent)) + '%';
+      
+      // Handle Lipinski's Rule of Five
+      if (data.lipinski_compliance) {
+        const lipinski = data.lipinski_compliance;
+        document.getElementById('mw-val').innerText = Math.round(lipinski.molecular_weight || 0);
+        document.getElementById('logp-val').innerText = (lipinski.logP || 0).toFixed(2);
+        document.getElementById('hbd-val').innerText = Math.round(lipinski.h_donors || 0);
+      } else {
+        // Fallback for old API structure
+        document.getElementById('mw-val').innerText = Math.round(data.mw || 0);
+        document.getElementById('logp-val').innerText = (data.logp || 0).toFixed(2);
+        document.getElementById('hbd-val').innerText = Math.round(data.hbd || 0);
+      }
+      
+      // Handle Structural Alerts (PAINS)
+      const alertContainer = document.getElementById('alert-container');
+      if (data.structural_alerts && data.structural_alerts.has_alert) {
+        document.getElementById('alert-reason').innerText = data.structural_alerts.alert_reason || 'Unknown alert';
+        alertContainer.classList.remove('d-none');
+      } else {
+        alertContainer.classList.add('d-none');
+      }
+    }
+
+    // Handle when a drug card is clicked (ignore clicks on atom overlays)
+    function handleDrugClick(event, drugName, smiles) {
+      if (event?.target?.closest('[data-atom-idx]')) {
+        return; // Let atom overlay clicks be handled elsewhere
+      }
+
+      fetch(`/api/molecule-metadata/${drugName}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) {
+            console.error('Error loading drug metadata:', data.error);
+            return;
+          }
+          // Update analytics with base (unmodified) drug data
+          updateAnalytics(data);
+          console.log('Drug selected:', drugName);
+        })
+        .catch(err => console.error('Error loading drug metadata:', err));
     }
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -325,21 +353,20 @@
           });
           if (!response.ok) throw new Error('Failed to modify drug');
           const data = await response.json();
-          if (data.modified_svg) {
-            document.getElementById('molecule-svg-container').innerHTML = data.modified_svg;
-          }
-          if (data.qed || data.sa_score || data.lipinski || data.pains) {
-            updateAnalytics({
-              drug_likeness: data.qed,
-              stability_score: data.sa_score,
-              mw: data.lipinski?.mw,
-              logp: data.lipinski?.logp,
-              hbd: data.lipinski?.hbd
-            });
+          if (data.success) {
+            // Update molecule visualization
+            if (data.molecule_svg) {
+              document.getElementById('molecule-svg-container').innerHTML = data.molecule_svg;
+            }
+            // Update analytics with the response data
+            updateAnalytics(data);
+            currentSmiles = data.new_smiles;
+          } else {
+            alert('Error: ' + (data.error || 'Failed to modify drug'));
           }
         } catch (e) {
           console.error('Error applying swap:', e);
-          alert('Error applying swap');
+          alert('Error applying swap: ' + e.message);
         }
       });
       document.getElementById('close-drug-btn')?.addEventListener('click', showAllDrugs);
