@@ -1,25 +1,25 @@
-from rdkit import Chem
-from rdkit.Chem import Draw
-
-# Dictionary containing both drugs and their SMILES
-
-drug_data = {
-    "Sunitinib": "CCN(CC)CCNC(=O)c1c(C)[nH]c(\C=C2/C(=O)Nc3ccc(F)cc23)c1C",
-    "Cabozantinib": "COc1cc2c(cc1OC)nccc2Oc3ccc(cc3)NC(=O)C4(CC4)C(=O)Nc5ccc(cc5)F"
-}
+from rdkit import Chem  # type: ignore[import-untyped]
+from rdkit.Chem import Draw  # type: ignore[import-untyped]
+from backend.chemistry import get_drugs_by_protein
 
 print("Enter Protein (e.g., VEGFR or PDGFR):")
 protein = input().strip().upper()
 
-if protein in ["VEGFR", "PDGFR"]:
-    for name, smiles in drug_data.items():
+# Get drugs for the protein using chemistry.py function
+drugs = get_drugs_by_protein(protein)
+
+if drugs:
+    for drug in drugs:
+        name = drug["name"]
+        smiles = drug["smiles"]
+
         # 1. Print the text info for both drugs
         print(f"\nDrug: {name}")
         print(f"SMILES: {smiles}")
 
         # 2. Generate the molecule object
         mol = Chem.MolFromSmiles(smiles)
-        
+
         if mol:
             # 3. Create the image and open it in your default viewer
             img = Draw.MolToImage(mol, size=(400, 400))
@@ -28,4 +28,3 @@ if protein in ["VEGFR", "PDGFR"]:
             print(f"Error: Could not process SMILES for {name}")
 else:
     print("No drugs found for this protein.")
-    

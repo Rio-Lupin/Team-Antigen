@@ -6,11 +6,11 @@ Provides functions for molecule modification, validation, and visualization.
 from typing import Dict, List, Optional, Tuple, Any
 import logging
 import re
-from rdkit import Chem
-from rdkit.Chem import QED, AllChem, Descriptors, rdMolDescriptors, FilterCatalog
-from rdkit.Chem import rdCoordGen
-from rdkit.Chem.Draw import rdMolDraw2D
-from rdkit import rdBase
+from rdkit import Chem  # type: ignore[import-untyped]
+from rdkit.Chem import QED, AllChem, Descriptors, rdMolDescriptors, FilterCatalog  # type: ignore[import-untyped]
+from rdkit.Chem import rdCoordGen  # type: ignore[import-untyped]
+from rdkit.Chem.Draw import rdMolDraw2D  # type: ignore[import-untyped]
+from rdkit import rdBase  # type: ignore[import-untyped]
 
 # Try multiple import paths for SA_Score (varies by installation method)
 # Note: SA_Score is in RDKit's Contrib directory which may not be in Python path
@@ -19,16 +19,21 @@ sascorer = None
 
 try:
     from rdkit.Contrib.SA_Score import sascorer  # type: ignore[import-untyped]
+
     SA_SCORE_AVAILABLE = True
 except ImportError:
     try:
         # Alternative import path for Conda installations
         import sys
         import os
-        contrib_path = os.path.join(os.path.dirname(__file__), '..', '..', 'share', 'RDKit', 'Contrib')
+
+        contrib_path = os.path.join(
+            os.path.dirname(__file__), "..", "..", "share", "RDKit", "Contrib"
+        )
         if os.path.exists(contrib_path):
             sys.path.insert(0, contrib_path)
             from SA_Score import sascorer  # type: ignore[import-untyped]
+
             SA_SCORE_AVAILABLE = True
     except ImportError:
         logging.warning("SA_Score not available. Stability scoring will be disabled.")
@@ -36,15 +41,36 @@ except ImportError:
         sascorer = None
 
 try:
-    from chembl_webresource_client.new_client import new_client
+    from chembl_webresource_client.new_client import new_client  # type: ignore[import-untyped]
+
     CHEMBL_AVAILABLE = True
 except ImportError:
-    logging.warning("chembl_webresource_client not available. ChEMBL checks will be disabled.")
+    logging.warning(
+        "chembl_webresource_client not available. ChEMBL checks will be disabled."
+    )
     CHEMBL_AVAILABLE = False
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Drug data: Maps drug names to their SMILES strings
+# Integrated from test-1.py - keeping original naming convention
+drug_data = {
+    "Sunitinib": "CCN(CC)CCNC(=O)c1c(C)[nH]c(\\C=C2/C(=O)Nc3ccc(F)cc23)c1C",
+    "Cabozantinib": "COc1cc2c(cc1OC)nccc2Oc3ccc(cc3)NC(=O)C4(CC4)C(=O)Nc5ccc(cc5)F",
+    # Add more drugs as needed
+}
+
+# Protein to drug mapping
+# Maps protein names (case-insensitive) to lists of drug names
+PROTEIN_TO_DRUGS = {
+    "VEGFR": ["Sunitinib", "Cabozantinib"],
+    "PDGFR": ["Sunitinib", "Cabozantinib"],
+    "VEGF RECEPTOR 2": ["Sunitinib", "Cabozantinib"],
+    "PDGF RECEPTOR BETA": ["Sunitinib", "Cabozantinib"],
+    "MTOR": ["Everolimus", "Temsirolimus"],  # Add when SMILES are available
+}
 
 # Common R-group substitution options for the dropdown
 # Format: {display_name: SMILES_string}
@@ -72,65 +98,121 @@ COMMON_R_GROUPS = {
 }
 
 
+def get_drugs_by_protein(protein_name: str) -> List[Dict[str, str]]:
+    """
+    Get list of drugs associated with a protein.
+
+    Args:
+        protein_name: Name of the protein (case-insensitive)
+
+    Returns:
+        List of dictionaries with 'name' and 'smiles' keys for each drug
+        Returns empty list if protein not found
+    """
+    protein_upper = protein_name.strip().upper()
+
+    # Try exact match first
+    drug_names = PROTEIN_TO_DRUGS.get(protein_upper, [])
+
+    # If no exact match, try partial matching
+    if not drug_names:
+        for key, drugs in PROTEIN_TO_DRUGS.items():
+            if protein_upper in key or key in protein_upper:
+                drug_names = drugs
+                break
+
+    # Build result list with drug names and SMILES
+    result = []
+    for drug_name in drug_names:
+        smiles = drug_data.get(drug_name)
+        if smiles:
+            result.append({"name": drug_name, "smiles": smiles})
+
+    return result
+
+
+def get_smiles_by_drug_name(drug_name: str) -> Optional[str]:
+    """
+    Get SMILES string for a drug by name.
+
+    Args:
+        drug_name: Name of the drug
+
+    Returns:
+        SMILES string if found, None otherwise
+    """
+    return drug_data.get(drug_name)
+
+
+def get_all_drugs() -> Dict[str, str]:
+    """
+    Get all drugs in the database.
+
+    Returns:
+        Dictionary mapping drug names to SMILES strings
+    """
+    return drug_data.copy()
+
+
 def get_modifiable_atoms(smiles: str) -> List[int]:
     """
     Identifies atoms that are safe to modify (peripheral/R-groups, not core ring atoms).
-    
+
     Args:
         smiles: SMILES string of the molecule
-        
+
     Returns:
         List of atom indices that can be safely modified
-        
+
     Raises:
         ValueError: If the SMILES string is invalid
     """
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         raise ValueError(f"Invalid SMILES string: {smiles}")
-    
+
     modifiable_indices = []
-    
+
     for atom in mol.GetAtoms():
         atom_idx = atom.GetIdx()
         symbol = atom.GetSymbol()
-        
+
         # Skip if atom is in a ring (core structure)
         if atom.IsInRing():
             # Allow halogens in rings (common substitution sites)
             if symbol not in ["F", "Cl", "Br", "I"]:
                 continue
-        
+
         # Allow terminal atoms (only one neighbor)
         if atom.GetDegree() == 1:
             modifiable_indices.append(atom_idx)
             continue
-        
+
         # Allow halogens regardless of connectivity
         if symbol in ["F", "Cl", "Br", "I"]:
             modifiable_indices.append(atom_idx)
             continue
-        
+
         # Allow carbon/nitrogen/oxygen with low connectivity (peripheral groups)
         if symbol in ["C", "N", "O"] and atom.GetDegree() <= 2:
             # Check if it's not part of an aromatic ring system
             if not atom.GetIsAromatic():
                 modifiable_indices.append(atom_idx)
-    
+
     return modifiable_indices
 
 
 def apply_swap(base_smiles: str, atom_idx: int, new_group_smiles: str) -> Optional[str]:
     """
     Replaces an atom in the molecule with a new group, handling valency correctly.
-    
+
     Uses RDKit reactions to ensure proper bond handling and valency.
-    
+
     Args:
         base_smiles: Original SMILES string
         atom_idx: Index of the atom to replace (0-based)
         new_group_smiles: SMILES string of the replacement group
-        
+
     Returns:
         New SMILES string if successful, None otherwise
     """
@@ -140,46 +222,50 @@ def apply_swap(base_smiles: str, atom_idx: int, new_group_smiles: str) -> Option
         if mol is None:
             logger.error(f"Invalid base SMILES: {base_smiles}")
             return None
-        
+
         # Validate atom index
         if atom_idx < 0 or atom_idx >= mol.GetNumAtoms():
-            logger.error(f"Invalid atom index: {atom_idx} (molecule has {mol.GetNumAtoms()} atoms)")
+            logger.error(
+                f"Invalid atom index: {atom_idx} (molecule has {mol.GetNumAtoms()} atoms)"
+            )
             return None
-        
+
         atom_to_replace = mol.GetAtomWithIdx(atom_idx)
         neighbors = list(atom_to_replace.GetNeighbors())
-        
+
         # If it's a terminal atom (single neighbor), we can do a simple replacement
         if len(neighbors) == 1:
             return _replace_terminal_atom(mol, atom_idx, new_group_smiles)
         else:
             # For atoms with multiple neighbors, we need a more sophisticated approach
             return _replace_multi_neighbor_atom(mol, atom_idx, new_group_smiles)
-            
+
     except Exception as e:
         logger.error(f"Error in apply_swap: {str(e)}")
         return None
 
 
-def _replace_terminal_atom(mol: Chem.Mol, atom_idx: int, new_group_smiles: str) -> Optional[str]:
+def _replace_terminal_atom(
+    mol: Chem.Mol, atom_idx: int, new_group_smiles: str
+) -> Optional[str]:
     """Replace a terminal atom (only one neighbor) with a new group."""
     try:
         atom = mol.GetAtomWithIdx(atom_idx)
         neighbors = list(atom.GetNeighbors())
         if len(neighbors) != 1:
             return None
-        
+
         neighbor = neighbors[0]
         neighbor_idx = neighbor.GetIdx()
         bond = mol.GetBondBetweenAtoms(neighbor.GetIdx(), atom_idx)
         bond_order = bond.GetBondTypeAsDouble()
-        
+
         # Parse the new group
         new_group_mol = Chem.MolFromSmiles(new_group_smiles)
         if new_group_mol is None:
             logger.error(f"Invalid new group SMILES: {new_group_smiles}")
             return None
-        
+
         # For simple atoms like F, Cl, etc., use direct replacement
         if new_group_mol.GetNumAtoms() == 1:
             new_symbol = new_group_mol.GetAtomWithIdx(0).GetSymbol()
@@ -187,13 +273,13 @@ def _replace_terminal_atom(mol: Chem.Mol, atom_idx: int, new_group_smiles: str) 
             new_atom = Chem.Atom(new_symbol)
             editable_mol.ReplaceAtom(atom_idx, new_atom)
             final_mol = editable_mol.GetMol()
-            
+
             try:
                 Chem.SanitizeMol(final_mol)
                 return Chem.MolToSmiles(final_mol)
             except:
                 return None
-        
+
         # For multi-atom groups, use reaction-based replacement
         # Strategy: Cut the bond, then attach the new group
         # Reaction pattern: [*:1]-[*:2] -> [*:1]-[NewGroup]
@@ -201,22 +287,22 @@ def _replace_terminal_atom(mol: Chem.Mol, atom_idx: int, new_group_smiles: str) 
             # First, try using a reaction with proper attachment point
             # The new group needs to have an attachment point marked
             # For now, we'll try attaching at the first atom of the new group
-            
+
             # Create a modified new group SMILES with attachment point
             # We assume the new group attaches via its first atom
             reaction_smarts = f"[*:1]-[*:2]>>[*:1]-{new_group_smiles}"
             rxn = AllChem.ReactionFromSmarts(reaction_smarts)
-            
+
             if rxn is not None:
                 # Prepare molecule with mapping
                 mol_with_map = Chem.RWMol(mol)
                 mol_with_map.GetAtomWithIdx(neighbor_idx).SetAtomMapNum(1)
                 mol_with_map.GetAtomWithIdx(atom_idx).SetAtomMapNum(2)
                 mol_with_map = mol_with_map.GetMol()
-                
+
                 # Run reaction
                 products = rxn.RunReactants((mol_with_map,))
-                
+
                 if products and len(products) > 0:
                     product = products[0][0]
                     # Remove atom map numbers
@@ -225,13 +311,15 @@ def _replace_terminal_atom(mol: Chem.Mol, atom_idx: int, new_group_smiles: str) 
                     Chem.SanitizeMol(product)
                     return Chem.MolToSmiles(product)
         except Exception as e:
-            logger.debug(f"Reaction-based replacement failed: {str(e)}, trying alternative method")
-        
+            logger.debug(
+                f"Reaction-based replacement failed: {str(e)}, trying alternative method"
+            )
+
         # Alternative: Manual bond cutting and group attachment
         try:
             editable_mol = Chem.RWMol(mol)
             stored_neighbor_idx = neighbor_idx
-            
+
             # Parse the new group
             new_group_mol = Chem.MolFromSmiles(new_group_smiles)
             if new_group_mol:
@@ -240,7 +328,7 @@ def _replace_terminal_atom(mol: Chem.Mol, atom_idx: int, new_group_smiles: str) 
                 for atom in new_group_mol.GetAtoms():
                     new_atom_idx = editable_mol.AddAtom(atom)
                     new_group_atoms.append(new_atom_idx)
-                
+
                 # Add bonds from the new group
                 for bond in new_group_mol.GetBonds():
                     begin_idx = bond.GetBeginAtomIdx()
@@ -248,78 +336,85 @@ def _replace_terminal_atom(mol: Chem.Mol, atom_idx: int, new_group_smiles: str) 
                     editable_mol.AddBond(
                         new_group_atoms[begin_idx],
                         new_group_atoms[end_idx],
-                        bond.GetBondType()
+                        bond.GetBondType(),
                     )
-                
+
                 # Connect the new group to the neighbor (attach at first atom)
-                editable_mol.AddBond(stored_neighbor_idx, new_group_atoms[0], Chem.BondType.SINGLE)
+                editable_mol.AddBond(
+                    stored_neighbor_idx, new_group_atoms[0], Chem.BondType.SINGLE
+                )
 
                 # Remove the old atom
                 editable_mol.RemoveAtom(atom_idx)
-            
-                
+
                 final_mol = editable_mol.GetMol()
                 Chem.SanitizeMol(final_mol)
                 return Chem.MolToSmiles(final_mol)
         except Exception as e:
             logger.debug(f"Manual replacement failed: {str(e)}")
-        
+
         # Final fallback
         return _direct_replacement_fallback(mol, atom_idx, new_group_smiles)
-        
+
     except Exception as e:
         logger.error(f"Error in _replace_terminal_atom: {str(e)}")
         return None
 
 
-def _replace_multi_neighbor_atom(mol: Chem.Mol, atom_idx: int, new_group_smiles: str) -> Optional[str]:
+def _replace_multi_neighbor_atom(
+    mol: Chem.Mol, atom_idx: int, new_group_smiles: str
+) -> Optional[str]:
     """Replace an atom with multiple neighbors (more complex case)."""
     # For hackathon purposes, we'll be more conservative here
     # Only allow simple atom replacements for multi-neighbor atoms
     try:
         new_group_mol = Chem.MolFromSmiles(new_group_smiles)
         if new_group_mol is None or new_group_mol.GetNumAtoms() != 1:
-            logger.warning(f"Cannot replace multi-neighbor atom with complex group: {new_group_smiles}")
+            logger.warning(
+                f"Cannot replace multi-neighbor atom with complex group: {new_group_smiles}"
+            )
             return None
-        
+
         new_symbol = new_group_mol.GetAtomWithIdx(0).GetSymbol()
         editable_mol = Chem.RWMol(mol)
         new_atom = Chem.Atom(new_symbol)
         editable_mol.ReplaceAtom(atom_idx, new_atom)
         final_mol = editable_mol.GetMol()
-        
+
         try:
             Chem.SanitizeMol(final_mol)
             return Chem.MolToSmiles(final_mol)
         except Exception as e:
             logger.warning(f"Sanitization failed: {str(e)}")
             return None
-            
+
     except Exception as e:
         logger.error(f"Error in _replace_multi_neighbor_atom: {str(e)}")
         return None
 
 
-def _direct_replacement_fallback(mol: Chem.Mol, atom_idx: int, new_group_smiles: str) -> Optional[str]:
+def _direct_replacement_fallback(
+    mol: Chem.Mol, atom_idx: int, new_group_smiles: str
+) -> Optional[str]:
     """Fallback method using direct atom type replacement."""
     try:
         new_group_mol = Chem.MolFromSmiles(new_group_smiles)
         if new_group_mol is None:
             return None
-        
+
         if new_group_mol.GetNumAtoms() == 1:
             editable_mol = Chem.RWMol(mol)
             new_symbol = new_group_mol.GetAtomWithIdx(0).GetSymbol()
             new_atom = Chem.Atom(new_symbol)
             editable_mol.ReplaceAtom(atom_idx, new_atom)
             final_mol = editable_mol.GetMol()
-            
+
             try:
                 Chem.SanitizeMol(final_mol)
                 return Chem.MolToSmiles(final_mol)
             except:
                 return None
-        
+
         return None
     except:
         return None
@@ -329,17 +424,17 @@ def calculate_stability_score(mol: Chem.Mol) -> Optional[float]:
     """
     Calculate the synthetic accessibility score (SAScore) for a molecule.
     Lower scores indicate easier synthesis.
-    
+
     Args:
         mol: RDKit molecule object
-        
+
     Returns:
         SAScore (typically 1-10, lower is better) or None if invalid
     """
     if not SA_SCORE_AVAILABLE or sascorer is None:
         logger.warning("SA_Score not available. Cannot calculate stability score.")
         return None
-    try:   
+    try:
         score = sascorer.calculateScore(mol)
         return round(score, 2)
     except Exception as e:
@@ -351,10 +446,10 @@ def calculate_drug_likeness(mol: Chem.Mol) -> Optional[float]:
     """
     Calculate the Quantitative Estimate of Drug-likeness (QED) score.
     Higher scores (closer to 1.0) indicate better drug-likeness.
-    
+
     Args:
         mol: RDKit molecule object
-        
+
     Returns:
         QED score (0-1, higher is better) or None if invalid
     """
@@ -373,7 +468,7 @@ def check_lipinski_rules(mol: Chem.Mol) -> Dict[str, Any]:
         mol: RDKit molecule object
     Returns:
         Dictionary with compliance status and property values
-    
+
     """
     try:
         mw = Descriptors.MolWt(mol)  # Molecular weight, not exact mass
@@ -391,12 +486,12 @@ def check_lipinski_rules(mol: Chem.Mol) -> Dict[str, Any]:
             "molecular_weight": round(mw, 2),
             "logP": round(logp, 2),
             "h_donors": h_donors,
-            "h_acceptors": h_acceptors
+            "h_acceptors": h_acceptors,
         }
     except Exception as e:
         logger.error(f"Lipinski check failed: {e}")
         return {}
-    
+
 
 def check_structural_alerts(mol: Chem.Mol) -> Dict[str, Any]:
     """Checks Structural Alerts (PAINS).
@@ -412,98 +507,104 @@ def check_structural_alerts(mol: Chem.Mol) -> Dict[str, Any]:
         params.AddCatalog(FilterCatalog.FilterCatalogParams.FilterCatalogs.PAINS)
         catalog = FilterCatalog.FilterCatalog(params)
         has_alert = catalog.HasMatch(mol)
-        alert_reason = catalog.GetFirstMatch(mol).GetDescription() if has_alert else "None"
+        alert_reason = (
+            catalog.GetFirstMatch(mol).GetDescription() if has_alert else "None"
+        )
 
-        return {
-            "has_alert": has_alert,
-            "alert_reason": alert_reason
-        }
+        return {"has_alert": has_alert, "alert_reason": alert_reason}
     except Exception as e:
         logger.error(f"PAINS alert: {str(e)}")
         return {}
 
+
 def verify_if_real_compound(smiles: str) -> Tuple[bool, Optional[str]]:
     """
     Check if a compound exists in the ChEMBL database.
-    
+
     Args:
         smiles: SMILES string to search for
-        
+
     Returns:
         Tuple of (is_real_compound: bool, compound_name: Optional[str])
-        
+
     Raises:
         RuntimeError: If ChEMBL client is not available
     """
     if not CHEMBL_AVAILABLE:
         raise RuntimeError("ChEMBL webresource client is not available")
-    
+
     try:
         molecule = new_client.molecule
         # Canonicalize the SMILES first for better matching
         mol = Chem.MolFromSmiles(smiles)
         if mol is None:
             return False, None
-        
+
         canon_smiles = Chem.MolToSmiles(mol)
-        
+
         # Search ChEMBL database
-        res = molecule.filter(molecule_structures__canonical_smiles__flex=canon_smiles).only(['pref_name', 'molecule_chembl_id'])
-        
+        res = molecule.filter(
+            molecule_structures__canonical_smiles__flex=canon_smiles
+        ).only(["pref_name", "molecule_chembl_id"])
+
         if len(res) > 0:
             # Get the preferred name, or fallback to ChEMBL ID
-            pref_name = res[0].get('pref_name')
+            pref_name = res[0].get("pref_name")
             if not pref_name:
-                pref_name = res[0].get('molecule_chembl_id', 'Unknown')
+                pref_name = res[0].get("molecule_chembl_id", "Unknown")
             return True, pref_name
-        
+
         return False, None
-        
+
     except Exception as e:
         logger.error(f"Error checking ChEMBL database: {str(e)}")
         # Return False on error to avoid breaking the workflow
         return False, None
 
 
-def smiles_to_svg(smiles: str, width: int = 400, height: int = 400, 
-                  highlight_atom_idx: Optional[int] = None,
-                  modifiable_atoms: Optional[List[int]] = None) -> str:
+def smiles_to_svg(
+    smiles: str,
+    width: int = 400,
+    height: int = 400,
+    highlight_atom_idx: Optional[int] = None,
+    modifiable_atoms: Optional[List[int]] = None,
+) -> str:
     """
     Generate an SVG representation of a molecule.
-    
+
     Args:
         smiles: SMILES string of the molecule
         width: SVG width in pixels
         height: SVG height in pixels
         highlight_atom_idx: Optional atom index to highlight (for modified atoms)
         modifiable_atoms: Optional list of atom indices that should be clickable
-        
+
     Returns:
         SVG string (not bytes) for easy web display
-        
+
     Raises:
         ValueError: If the SMILES string is invalid
     """
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         raise ValueError(f"Invalid SMILES string: {smiles}")
-    
+
     try:
         # Generate 2D coordinates
         rdCoordGen.AddCoords(mol)
     except:
         # Fallback to default coordinate generation
         AllChem.Compute2DCoords(mol)
-    
+
     drawer = rdMolDraw2D.MolDraw2DSVG(width, height)
     drawer.SetDrawOptions()
-    
+
     # Configure highlighting if atom index is provided
     highlight_atoms = []
     highlight_bonds = []
     highlight_radii = {}
     highlight_colors = {}
-    
+
     if highlight_atom_idx is not None and 0 <= highlight_atom_idx < mol.GetNumAtoms():
         highlight_atoms = [highlight_atom_idx]
         # Highlight bonds connected to this atom
@@ -515,25 +616,31 @@ def smiles_to_svg(smiles: str, width: int = 400, height: int = 400,
         highlight_radii[highlight_atom_idx] = 0.5
         # Use a bright color for highlighting (yellow)
         highlight_colors[highlight_atom_idx] = (1.0, 1.0, 0.0)
-    
+
     # Draw the molecule
-    drawer.DrawMolecule(mol, highlightAtoms=highlight_atoms, 
-                       highlightBonds=highlight_bonds,
-                       highlightAtomRadii=highlight_radii,
-                       highlightAtomColors=highlight_colors)
+    drawer.DrawMolecule(
+        mol,
+        highlightAtoms=highlight_atoms,
+        highlightBonds=highlight_bonds,
+        highlightAtomRadii=highlight_radii,
+        highlightAtomColors=highlight_colors,
+    )
     drawer.FinishDrawing()
-    
+
     svg_text = drawer.GetDrawingText()
-    
+
     # Add clickable overlays for modifiable atoms
     if modifiable_atoms:
-        svg_text = _add_clickable_atoms_to_svg(svg_text, mol, modifiable_atoms, width, height)
-    
+        svg_text = _add_clickable_atoms_to_svg(
+            svg_text, mol, modifiable_atoms, width, height
+        )
+
     return svg_text
 
 
-def _add_clickable_atoms_to_svg(svg_text: str, mol: Chem.Mol, modifiable_atoms: List[int], 
-                                width: int, height: int) -> str:
+def _add_clickable_atoms_to_svg(
+    svg_text: str, mol: Chem.Mol, modifiable_atoms: List[int], width: int, height: int
+) -> str:
     """
     Add clickable overlay circles to SVG for modifiable atoms.
     Inserts transparent circles with data attributes for JavaScript interaction.
@@ -541,7 +648,7 @@ def _add_clickable_atoms_to_svg(svg_text: str, mol: Chem.Mol, modifiable_atoms: 
     try:
         # Get atom coordinates from the molecule
         conf = mol.GetConformer()
-        
+
         # Find the viewBox or bounds from the SVG
         viewbox_match = re.search(r'viewBox="([^"]*)"', svg_text)
         if viewbox_match:
@@ -555,30 +662,30 @@ def _add_clickable_atoms_to_svg(svg_text: str, mol: Chem.Mol, modifiable_atoms: 
                 svg_x, svg_y, svg_width, svg_height = 0, 0, width, height
         else:
             svg_x, svg_y, svg_width, svg_height = 0, 0, width, height
-        
+
         # Get molecule bounds from coordinates
         coords = [conf.GetAtomPosition(i) for i in range(mol.GetNumAtoms())]
         if not coords:
             return svg_text
-        
+
         min_x = min(c.x for c in coords)
         max_x = max(c.x for c in coords)
         min_y = min(c.y for c in coords)
         max_y = max(c.y for c in coords)
         mol_width = max_x - min_x if max_x != min_x else 1
         mol_height = max_y - min_y if max_y != min_y else 1
-        
+
         # Scale factor from molecule coordinates to SVG pixels
         scale_x = svg_width / mol_width if mol_width > 0 else 1
         scale_y = svg_height / mol_height if mol_height > 0 else 1
         scale = min(scale_x, scale_y) * 0.8  # Use smaller scale to leave margin
-        
+
         # Center offset
         center_x = (min_x + max_x) / 2
         center_y = (min_y + max_y) / 2
         offset_x = svg_x + svg_width / 2 - center_x * scale
         offset_y = svg_y + svg_height / 2 - center_y * scale
-        
+
         # Create clickable circles for modifiable atoms
         clickable_circles = []
         for atom_idx in modifiable_atoms:
@@ -587,7 +694,7 @@ def _add_clickable_atoms_to_svg(svg_text: str, mol: Chem.Mol, modifiable_atoms: 
                 # Convert molecule coordinates to SVG coordinates
                 svg_x_pos = offset_x + pos.x * scale
                 svg_y_pos = offset_y + pos.y * scale
-                
+
                 # Create an invisible clickable circle (larger for easier clicking)
                 clickable_circles.append(
                     f'<circle cx="{svg_x_pos:.2f}" cy="{svg_y_pos:.2f}" r="15" '
@@ -595,12 +702,12 @@ def _add_clickable_atoms_to_svg(svg_text: str, mol: Chem.Mol, modifiable_atoms: 
                     f'data-atom-id="{atom_idx}" class="clickable-atom" '
                     f'style="pointer-events: all;"/>'
                 )
-        
+
         # Insert the clickable circles before closing </svg> tag
         if clickable_circles:
-            circles_svg = '\n'.join(clickable_circles)
-            svg_text = svg_text.replace('</svg>', f'{circles_svg}\n</svg>')
-        
+            circles_svg = "\n".join(clickable_circles)
+            svg_text = svg_text.replace("</svg>", f"{circles_svg}\n</svg>")
+
         return svg_text
     except Exception as e:
         logger.warning(f"Could not add clickable atoms to SVG: {str(e)}")
@@ -611,10 +718,10 @@ def get_ui_metadata(smiles: str) -> Dict[str, Any]:
     """
     Generate UI metadata for the frontend.
     Returns information about which atoms are clickable and what dropdown options are available.
-    
+
     Args:
         smiles: SMILES string of the molecule
-        
+
     Returns:
         Dictionary containing:
             - modifiable_atoms: List of atom indices that can be modified
@@ -627,20 +734,20 @@ def get_ui_metadata(smiles: str) -> Dict[str, Any]:
         mol = Chem.MolFromSmiles(smiles)
         if mol is None:
             raise ValueError(f"Invalid SMILES string: {smiles}")
-        
+
         # Generate coordinates if not present
         try:
             rdCoordGen.AddCoords(mol)
         except:
             AllChem.Compute2DCoords(mol)
-        
+
         modifiable_atoms = get_modifiable_atoms(smiles)
-        
+
         # Get atom information for modifiable atoms
         atom_info = {}
         atom_coordinates = {}
         conf = mol.GetConformer()
-        
+
         for idx in modifiable_atoms:
             atom = mol.GetAtomWithIdx(idx)
             atom_info[idx] = {
@@ -655,10 +762,10 @@ def get_ui_metadata(smiles: str) -> Dict[str, Any]:
                 "x": float(pos.x),
                 "y": float(pos.y),
             }
-        
+
         # Generate SVG with clickable overlays
         molecule_svg = smiles_to_svg(smiles, modifiable_atoms=modifiable_atoms)
-        
+
         return {
             "modifiable_atoms": modifiable_atoms,
             "atom_info": atom_info,
@@ -666,23 +773,24 @@ def get_ui_metadata(smiles: str) -> Dict[str, Any]:
             "r_group_options": COMMON_R_GROUPS,
             "molecule_svg": molecule_svg,
         }
-        
+
     except Exception as e:
         logger.error(f"Error generating UI metadata: {str(e)}")
         raise
 
 
-def _find_modified_atom_in_new_molecule(new_smiles: str, new_group_smiles: str, 
-                                        original_atom_idx: int) -> Optional[int]:
+def _find_modified_atom_in_new_molecule(
+    new_smiles: str, new_group_smiles: str, original_atom_idx: int
+) -> Optional[int]:
     """
     Attempt to find the modified atom in the new molecule.
     This is a heuristic approach for highlighting purposes.
-    
+
     Args:
         new_smiles: SMILES of the modified molecule
         new_group_smiles: SMILES of the replacement group
         original_atom_idx: Original atom index (for reference)
-        
+
     Returns:
         Atom index in new molecule if found, None otherwise
     """
@@ -690,12 +798,12 @@ def _find_modified_atom_in_new_molecule(new_smiles: str, new_group_smiles: str,
         new_mol = Chem.MolFromSmiles(new_smiles)
         if new_mol is None:
             return None
-        
+
         # Parse the new group to get its symbol/pattern
         group_mol = Chem.MolFromSmiles(new_group_smiles)
         if group_mol is None:
             return None
-        
+
         # If it's a single atom, search for that atom type in terminal positions
         if group_mol.GetNumAtoms() == 1:
             target_symbol = group_mol.GetAtomWithIdx(0).GetSymbol()
@@ -703,28 +811,29 @@ def _find_modified_atom_in_new_molecule(new_smiles: str, new_group_smiles: str,
             for atom in new_mol.GetAtoms():
                 if atom.GetSymbol() == target_symbol and atom.GetDegree() == 1:
                     return atom.GetIdx()
-        
+
         # Fallback: return None (no highlighting)
         return None
     except:
         return None
 
 
-def validate_and_optimize_compound(old_smiles: str, atom_idx: int, 
-                                   new_group: str) -> Dict[str, Any]:
+def validate_and_optimize_compound(
+    old_smiles: str, atom_idx: int, new_group: str
+) -> Dict[str, Any]:
     """
     Main function for Function 2: Modify a drug and validate the result.
-    
+
     This function:
     1. Applies the swap to create a new compound
     2. Validates the compound (stability, drug-likeness, ChEMBL check)
     3. Returns visualization with highlighted modified atom
-    
+
     Args:
         old_smiles: Original SMILES string
         atom_idx: Index of atom to modify
         new_group: SMILES string of the replacement group (key from COMMON_R_GROUPS)
-        
+
     Returns:
         Dictionary containing:
             - success: bool indicating if the swap was successful
@@ -748,21 +857,23 @@ def validate_and_optimize_compound(old_smiles: str, atom_idx: int,
         "molecule_svg": None,
         "error": None,
     }
-    
+
     try:
         # Resolve the R-group SMILES if a key was provided
         new_group_smiles = COMMON_R_GROUPS.get(new_group, new_group)
-        
+
         # Apply the swap
         new_smiles = apply_swap(old_smiles, atom_idx, new_group_smiles)
-        
+
         if new_smiles is None:
-            result["error"] = "Failed to apply swap. Invalid atom index or incompatible substitution."
+            result["error"] = (
+                "Failed to apply swap. Invalid atom index or incompatible substitution."
+            )
             return result
-        
+
         result["new_smiles"] = new_smiles
         result["success"] = True
-        
+
         # Validate the new compound
         mol = Chem.MolFromSmiles(new_smiles)
         if mol is None:
@@ -782,24 +893,28 @@ def validate_and_optimize_compound(old_smiles: str, atom_idx: int,
         except RuntimeError:
             # ChEMBL not available, but continue with other validations
             logger.warning("ChEMBL check skipped (not available)")
-        
+
         # Generate visualization with highlighted modified atom
         try:
             # Try to find the modified atom in the new molecule
             highlight_idx = _find_modified_atom_in_new_molecule(
                 new_smiles, new_group_smiles, atom_idx
             )
-            result["molecule_svg"] = smiles_to_svg(new_smiles, highlight_atom_idx=highlight_idx)
+            result["molecule_svg"] = smiles_to_svg(
+                new_smiles, highlight_atom_idx=highlight_idx
+            )
         except Exception as e:
             logger.warning(f"Could not generate SVG: {str(e)}")
             # Try without highlighting as fallback
             try:
-                result["molecule_svg"] = smiles_to_svg(new_smiles, highlight_atom_idx=None)
+                result["molecule_svg"] = smiles_to_svg(
+                    new_smiles, highlight_atom_idx=None
+                )
             except:
                 pass
-        
+
         return result
-        
+
     except Exception as e:
         logger.error(f"Error in validate_and_optimize_compound: {str(e)}")
         result["error"] = str(e)
