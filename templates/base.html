@@ -37,33 +37,32 @@
 
       {% block content %}
 
-      <!-- Button trigger modal -->
-        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal">
-          Demo Info
+  <div class="position-relative pt-5"> <div class="position-absolute top-0 end-0 mt-2 me-2">
+        <button type="button" class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#infoModal">
+          <i class="bi bi-info-circle"></i> Demo Info
         </button>
+    </div>
 
-        <!-- Modal -->
-        <div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
-          <div class="modal-dialog">
-            <div class="modal-content">
-              <div class="modal-header">
-                <h1 class="modal-title fs-5" id="infoModalLabel"></h1>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-              </div>
-              <div class="modal-body">
-                <h3> In the chemical industry, the "problem" is that synthesizing a drug takes 6 months and $100,000,
-                  but only 1% of those drugs actually work. Our tool helps chemists process scientific data to skip the
-                  99% that fail.</h3>
-                <p>This tool works by displaying the drugs that target the proteins that drive the cancer: Renal Cell
-                  Carninoma.</p>
-              </div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-
-              </div>
+    <div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg"> <div class="modal-content">
+          <div class="modal-header">
+            <h1 class="modal-title fs-5" id="infoModalLabel">Platform Overview</h1>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="p-3">
+                <h3 class="text-primary mb-4">Accelerating Drug Discovery</h3>
+                <p class="lead">In the chemical industry, synthesizing a single drug candidate takes <strong>6 months and $100,000</strong>, yet 99% of candidates fail in clinical trials.</p>
+                <hr>
+                <p>Our tool helps chemists process scientific data to identify and optimize the 1% that succeed. This demo focuses on drugs targeting proteins that drive <strong>Renal Cell Carcinoma</strong>.</p>
             </div>
           </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          </div>
         </div>
+      </div>
+    </div>
 
       <form action="/" method="GET">
         <div class="input-group">
