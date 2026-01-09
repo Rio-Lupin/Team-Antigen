@@ -119,7 +119,7 @@
         </div>
       </div>
 
-      <div id="drugResults"></div>
+      <div id="drugResults"></div> -->
 
       </div>
 
@@ -166,7 +166,8 @@
       </div>
     </div>
 
-      {% endblock content %}
+    {% endblock content %}
+
   </div>
   <div>
 
@@ -248,6 +249,49 @@
         });
     });
 
+
+    //MODAL
+    // Add click handler for SVG images - put this in your <script> block
+    document.addEventListener('click', function (e) {
+      // Check if clicked element is a compound image
+      if (e.target.classList.contains('card-img-top')) {
+        const imageUrl = e.target.src;
+        const drugName = e.target.alt;
+
+        // Create modal HTML
+        const modalHtml = `
+      <div class="modal fade" id="moleculeModal" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">${drugName}</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+              <img src="${imageUrl}" class="img-fluid" style="max-height: 80vh">
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+        // Remove old modal if exists
+        const oldModal = document.getElementById('moleculeModal');
+        if (oldModal) oldModal.remove();
+
+        // Add new modal to body
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('moleculeModal'));
+        modal.show();
+
+        // Clean up when closed
+        document.getElementById('moleculeModal').addEventListener('hidden.bs.modal', function () {
+          this.remove();
+        });
+      }
+    });
 
     //Analytics
     function updateAnalytics(data) {
