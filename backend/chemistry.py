@@ -696,10 +696,10 @@ def _add_clickable_atoms_to_svg(
                 svg_x_pos = offset_x + pos.x * scale
                 svg_y_pos = offset_y + pos.y * scale
 
-                # Create an invisible clickable circle (larger for easier clicking)
+                # Create a visible clickable circle with an outline for easier discovery
                 clickable_circles.append(
                     f'<circle cx="{svg_x_pos:.2f}" cy="{svg_y_pos:.2f}" r="15" '
-                    f'fill="transparent" stroke="none" cursor="pointer" '
+                    f'fill="none" stroke="#2b8cff" stroke-width="2" cursor="pointer" '
                     f'data-atom-id="{atom_idx}" class="clickable-atom" '
                     f'style="pointer-events: all;"/>'
                 )
