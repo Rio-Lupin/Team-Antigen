@@ -219,7 +219,7 @@
                   ${drug.svg}
                 </div>
                 <div class="card-footer">
-                  <h5 class="card-title text-center">${drug.name}</h5>
+                  <h5 class="card-title text-center" data-original-name="${drug.name}">${drug.name}</h5>
                   <small class="text-muted d-block text-center">${drug.smiles}</small>
                 </div>
               </div>
@@ -512,6 +512,33 @@
             // Update metadata
             if (currentDrugMetadata[drugName]) {
               currentDrugMetadata[drugName].molecule_svg = data.molecule_svg;
+            }
+            
+            // Update drug name to show "drugname-test" and SMILES
+            const cardFooter = card.querySelector('.card-footer');
+            if (cardFooter) {
+              const cardTitle = cardFooter.querySelector('.card-title');
+              const smilesText = cardFooter.querySelector('small');
+              
+              if (cardTitle) {
+                // Get original name (set when card is created, preserved for subsequent modifications)
+                let originalName = cardTitle.getAttribute('data-original-name');
+                if (!originalName) {
+                  // Fallback: extract original name by removing '-test' if present
+                  const currentText = cardTitle.textContent.trim();
+                  originalName = currentText.replace(/-test$/, '');
+                  cardTitle.setAttribute('data-original-name', originalName);
+                }
+                // Update name to "drugname-test" if not already modified
+                if (!cardTitle.textContent.includes('-test')) {
+                  cardTitle.textContent = `${originalName}-test`;
+                }
+              }
+              
+              if (smilesText && data.new_smiles) {
+                // Update SMILES string to show the modified molecule
+                smilesText.textContent = data.new_smiles;
+              }
             }
             
             // Re-attach click handlers to new SVG
