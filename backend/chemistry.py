@@ -55,11 +55,12 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Drug data: Maps drug names to their SMILES strings
-# Integrated from test-1.py - keeping original naming convention
+# Integrated from test-1.py
 drug_data = {
     "Sunitinib": "CCN(CC)CCNC(=O)c1c(C)[nH]c(\\C=C2/C(=O)Nc3ccc(F)cc23)c1C",
     "Cabozantinib": "COc1cc2c(cc1OC)nccc2Oc3ccc(cc3)NC(=O)C4(CC4)C(=O)Nc5ccc(cc5)F",
-    # Add more drugs as needed
+    "Everolimus": "CC1CCC2(C(C1)C3CC4C5C(C3)C(C(C4(C)C)OC6C(C(C(C(O6)C)O)O)O)C(C5)C)C(=O)OC7CC(CC(C7)O)OC(=O)C8CC(C(C(C8)O)O)O",
+    "Temsirolimus": "CC1CCC2(C(C1)C3CC4C5C(C3)C(C(C4(C)C)OC6C(C(C(C(O6)C)O)O)O)C(C5)C)C(=O)OC7CC(CC(C7)O)OC(=O)C8CC(C(C(C8)O)O)O",
 }
 
 # Protein to drug mapping
@@ -69,7 +70,7 @@ PROTEIN_TO_DRUGS = {
     "PDGFR": ["Sunitinib", "Cabozantinib"],
     "VEGF RECEPTOR 2": ["Sunitinib", "Cabozantinib"],
     "PDGF RECEPTOR BETA": ["Sunitinib", "Cabozantinib"],
-    "MTOR": ["Everolimus", "Temsirolimus"],  # Add when SMILES are available
+    "MTOR": ["Everolimus", "Temsirolimus"],
 }
 
 # Common R-group substitution options for the dropdown
@@ -597,6 +598,7 @@ def smiles_to_svg(
         AllChem.Compute2DCoords(mol)
 
     drawer = rdMolDraw2D.MolDraw2DSVG(width, height)
+    drawer.SetDrawOptions()
 
     # Configure highlighting if atom index is provided
     highlight_atoms = []
