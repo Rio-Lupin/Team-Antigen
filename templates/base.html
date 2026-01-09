@@ -252,7 +252,7 @@
               const drugId = `drug-${drug.name.replace(/\s+/g, '-')}`;
               html += `
             <div class="col-md-12 drug-container mb-3">
-              <div class="card" data-drug-name="${drug.name}" data-drug-smiles="${drug.smiles}">
+              <div class="card drug-card" data-drug-name="${drug.name}" data-drug-smiles="${drug.smiles}" style="cursor: pointer;">
                 <div class="card-body" id="${drugId}-container">
                   ${drug.svg}
                 </div>
@@ -268,8 +268,9 @@
             html += '</div>';
             document.getElementById('drugResults').innerHTML = html;
 
-            // After adding SVGs, attach click handlers to clickable atoms
+            // After adding SVGs, attach click handlers to clickable atoms and drug cards
             attachAtomClickHandlers();
+            attachDrugCardClickHandlers();
           });
         })
         .catch(error => {
@@ -368,24 +369,35 @@
       }
     }
 
-    // Handle when a drug card is clicked (ignore clicks on atom overlays)
-    function handleDrugClick(event, drugName, smiles) {
-      if (event?.target?.closest('.clickable-atom')) {
-        return; // Let atom overlay clicks be handled elsewhere
-      }
-
-      fetch(`/api/molecule-metadata/${drugName}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.error) {
-            console.error('Error loading drug metadata:', data.error);
+    // Attach click handlers to drug cards
+    function attachDrugCardClickHandlers() {
+      document.querySelectorAll('.drug-card').forEach(card => {
+        card.addEventListener('click', function(e) {
+          // Ignore clicks on clickable atoms
+          if (e.target.closest('.clickable-atom')) {
             return;
           }
-          // Update analytics with base (unmodified) drug data
-          updateAnalytics(data);
-          console.log('Drug selected:', drugName);
-        })
-        .catch(err => console.error('Error loading drug metadata:', err));
+          
+          const drugName = this.getAttribute('data-drug-name');
+          const smiles = this.getAttribute('data-drug-smiles');
+          
+          if (!drugName) return;
+          
+          // Fetch and display analytics
+          fetch(`/api/molecule-metadata/${drugName}`)
+            .then(res => res.json())
+            .then(data => {
+              if (data.error) {
+                console.error('Error loading drug metadata:', data.error);
+                return;
+              }
+              // Update analytics with base (unmodified) drug data
+              updateAnalytics(data);
+              console.log('Drug selected:', drugName);
+            })
+            .catch(err => console.error('Error loading drug metadata:', err));
+        });
+      });
     }
 
     // Attach click handlers to all clickable atom circles
