@@ -1,50 +1,180 @@
-# Stack the Future 2026
+# Team Antigen - Renal Cell Carcinoma Drug Discovery Platform
 
-This template can be used as a starting point for developing your own application during the hackathon. The template is a [Flask](https://flask.palletsprojects.com/en/stable/) project - you can find a quick tutorial about Flask and its best practices [here](https://flask.palletsprojects.com/en/stable/tutorial/).
+A web-based platform for accelerating drug discovery for **Renal Cell Carcinoma (RCC)**. This tool helps researchers and chemists explore and optimize drug candidates by providing interactive molecule visualization, R-group substitution capabilities, and real-time drug-likeness analysis.
 
-## Common commands
-```sh
-# To install/update the project's dependencies
-$> pip install -r requirements.txt
+## Purpose
 
-# To start the server
-$> python -m flask run
+In the chemical industry, synthesizing a single drug candidate takes **6 months and $100,000**, yet 99% of candidates fail in clinical trials. This platform focuses on drugs targeting proteins that drive **Renal Cell Carcinoma**, helping researchers:
+
+- **Visualize** drug molecules interactively
+- **Modify** molecules through R-group substitutions
+- **Validate** drug candidates with real-time property calculations
+- **Explore** relationships between proteins and their associated drugs
+
+### Supported Proteins and Drugs
+
+The platform currently includes drugs targeting:
+- **VEGFR** (Vascular Endothelial Growth Factor Receptor)
+- **PDGFR** (Platelet-Derived Growth Factor Receptor)
+- **mTOR** (Mechanistic Target of Rapamycin)
+
+Example drugs: Sunitinib, Cabozantinib, Everolimus, Temsirolimus
+
+## Getting Started
+
+### Prerequisites
+
+- Python 3.8 or higher
+- pip (Python package manager)
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd Team-Antigen
+   ```
+
+2. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Start the Flask server**
+   ```bash
+   python -m flask run
+   # Or with custom host/port:
+   python -m flask --app app run --host=0.0.0.0 --port=5001
+   ```
+
+4. **Open in browser**
+   ```
+   http://localhost:5000
+   # Or http://localhost:5001 if using custom port
+   ```
+
+## How to Use
+
+### 1. Search for Proteins
+
+1. Type a protein name in the search field (e.g., "VEGFR", "PDGFR", "mTOR")
+2. The platform will display all drugs associated with that protein
+3. Each drug is shown as a card with its molecular structure (SVG visualization)
+
+### 2. Explore Molecules
+
+- **View molecule structure**: Each drug card displays an interactive SVG visualization
+- **Clickable atoms**: Blue circles indicate modifiable atoms that can be substituted
+- **Drug information**: Drug name and SMILES string are displayed below each molecule
+
+### 3. Modify Molecules (R-group Substitution)
+
+1. **Click on a clickable atom** (blue circle) in the molecule SVG
+2. **Select an R-group** from the dropdown menu that appears:
+   - Common options: Methyl, Fluorine, Chlorine, Hydroxyl, Amino, Phenyl, etc.
+3. **Apply the substitution**: The molecule updates automatically with:
+   - New molecular structure
+   - Updated drug name (becomes "DrugName-test")
+   - Updated SMILES string
+   - Real-time property calculations
+
+### 4. Analyze Drug Properties
+
+The analytics panel on the right displays:
+
+- **Drug-Likeness (QED)**: Quantitative estimate (0-1 scale, higher is better)
+- **Ease of Synthesis (SAScore)**: Synthesis feasibility (1-10 scale, lower is better)
+- **Lipinski's Rule of Five**: Oral drug-likeness checklist
+  - Molecular Weight (MW ≤ 500 Da)
+  - LogP (≤ 5)
+  - Hydrogen Bond Donors (HBD ≤ 5)
+  - Hydrogen Bond Acceptors (HBA ≤ 10)
+- **Structural Alerts (PAINS)**: Identifies problematic substructures
+
+### 5. Chain Modifications
+
+- After modifying a molecule, clickable atoms remain active
+- You can make multiple modifications in sequence
+- Each modification updates properties in real-time
+
+## Common Commands
+
+```bash
+# Install/update dependencies
+pip install -r requirements.txt
+
+# Start the development server
+python -m flask run
+
+# Start with custom host/port
+python -m flask --app app run --host=0.0.0.0 --port=5001
+
+# Run CLI testing tool (optional)
+python backend/test-1.py
 ```
 
-## Starter code
+## Project Structure
 
-We've provided you with some starter boilerplate code that should enable your team to quickly prototype your application.
-
-### `app.py`
-
-The entrypoint for your flask application is in the `app.py` module. The `flask run` command is set up to automatically find and run the flask application defined in this module. You can add more modules to add additional functionality as your project needs it (like the `chemistry.py` module in the [demo](https://github.com/schrodinger/hacking-the-gender-stack-2025-demo)).
-
-### `templates/base.html`
-
-We've included a base Jinja template that we recommend extending in any of your own templates (learn more about extending templates [here](https://jinja.palletsprojects.com/en/stable/templates/#template-inheritance)):
-
-```html
-<!-- templates/my-template.html -->
-
-{% extends "base.html" %}
-
-{% block content %}
-<p>
-  The HTML markup for your page should be included in the 'content' block
-</p>
-{% endblock %}
-
-{% block styles %}
-<style>
-  // Any custom CSS you may need to write should be included in a style tag within the 'styles' block
-</style>
-{% endblock %}
-
-{% block scripts %}
-<script>
-  // Any JavaScript you write should be included in the 'scripts' block
-</script>
-{% endblock %}
+```
+Team-Antigen/
+├── app.py                    # Flask API server (entry point)
+├── backend/
+│   ├── chemistry.py         # Core chemistry module (data + functions)
+│   └── test-1.py            # CLI testing tool
+├── templates/
+│   └── base.html            # Frontend HTML template
+├── requirements.txt         # Python dependencies
+├── README.md               # This file
+└── ARCHITECTURE.md         # Technical architecture documentation
 ```
 
-The base template includes [Bootstrap](https://getbootstrap.com/), a frontend toolkit, to allow you to quickly create polished UI elements. You can learn more about Bootstrap [here](https://getbootstrap.com/docs/5.3/getting-started/introduction/). (NOTE: The base template includes a maximal bundle of Bootstrap utilities that includes all necessary modules for supporting advanced features like tooltips and [Bootstrap icons](https://icons.getbootstrap.com/))
+## Technology Stack
+
+- **Backend**: Flask (Python web framework)
+- **Chemistry**: RDKit (cheminformatics library)
+- **Frontend**: HTML5, JavaScript, Bootstrap 5
+- **Visualization**: SVG (generated by RDKit)
+
+## Key Features
+
+- Interactive molecule visualization with clickable atoms
+- Real-time R-group substitution
+- Automated drug property calculation
+- Lipinski's Rule of Five validation
+- PAINS (Pan Assay Interference Compounds) detection
+- SMILES string generation and display
+- Responsive web interface
+
+## Scientific Background
+
+### Renal Cell Carcinoma (RCC)
+
+Renal Cell Carcinoma is the most common type of kidney cancer in adults. The platform focuses on targeting key proteins involved in RCC progression:
+
+- **VEGFR/PDGFR**: Angiogenesis pathways
+- **mTOR**: Cell growth and proliferation signaling
+
+### Drug Properties Explained
+
+- **QED (Quantitative Estimate of Drug-likeness)**: Predicts how "drug-like" a molecule is based on multiple ADMET properties
+- **SAScore (Synthetic Accessibility Score)**: Estimates how difficult/expensive a molecule is to synthesize
+- **Lipinski's Rule of Five**: Classic guideline for oral drug candidates
+- **PAINS**: Identifies substructures that cause false positives in assays
+
+## License
+
+This project is part of the Stack the Future 2026 hackathon.
+
+## Team
+
+Developed by Team Antigen for Schrodinger's Stack the Future 2026 hackathon.
+
+**Team Members:**
+- **Carlene** - [@Rio-Lupin](https://github.com/Rio-Lupin)
+- **Cynthia Wen** - [@cynthia-wen](https://github.com/cynthia-wen)
+- **Karen Maza** - [@KarenMazaDelgado](https://github.com/KarenMazaDelgado)
+- **Nyosha** - [@Bort1425](https://github.com/Bort1425)
+
+---
+
+For technical architecture details, see [ARCHITECTURE.md](ARCHITECTURE.md).
