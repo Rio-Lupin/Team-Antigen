@@ -140,12 +140,6 @@
 
     </div>
   </div>
-  <script>
-    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-    const tooltipList = [...tooltipTriggerList].forEach((tooltipTriggerEl) => {
-      new bootstrap.Tooltip(tooltipTriggerEl)
-    });
-  </script>
 
   {% block scripts %}
   <script>
@@ -158,49 +152,6 @@
     document.getElementById('hbd-val').innerText = Math.round(data.hbd || 0);
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('apply-swap-btn')?.addEventListener('click', async () => {
-      if (!currentSmiles || selectedAtomIdx === null) {
-        alert('Please select an atom first');
-        return;
-      }
-      const newGroup = document.getElementById('r-group-select').value;
-      if (!newGroup) {
-        alert('Please select an R-group');
-        return;
-      }
-      try {
-        const response = await fetch('/api/modify-drug', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({
-            smiles: currentSmiles,
-            atom_idx: parseInt(selectedAtomIdx),
-            new_group: newGroup
-          })
-        });
-        if (!response.ok) throw new Error('Failed to modify drug');
-        const data = await response.json();
-        if (data.modified_svg) {
-          document.getElementById('molecule-svg-container').innerHTML = data.modified_svg;
-        }
-        if (data.qed || data.sa_score || data.lipinski || data.pains) {
-          updateAnalytics({
-            drug_likeness: data.qed,
-            stability_score: data.sa_score,
-            mw: data.lipinski?.mw,
-            logp: data.lipinski?.logp,
-            hbd: data.lipinski?.hbd
-          });
-        }
-      } catch(e) {
-        console.error('Error applying swap:', e);
-        alert('Error applying swap');
-      }
-    });
-    document.getElementById('close-drug-btn')?.addEventListener('click', showAllDrugs);
-    loadProteins();
-  });
   </script>
   {% endblock scripts %}
 
