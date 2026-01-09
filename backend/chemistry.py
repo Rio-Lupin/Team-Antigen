@@ -496,7 +496,7 @@ def smiles_to_svg(smiles: str, width: int = 400, height: int = 400,
         AllChem.Compute2DCoords(mol)
     
     drawer = rdMolDraw2D.MolDraw2DSVG(width, height)
-    drawer.SetDrawOptions()
+    #drawer.SetDrawOptions()
     
     # Configure highlighting if atom index is provided
     highlight_atoms = []

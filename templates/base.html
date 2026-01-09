@@ -36,6 +36,35 @@
     <div class="container">
 
       {% block content %}
+
+      <!-- Button trigger modal -->
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal">
+          Demo Info
+        </button>
+
+        <!-- Modal -->
+        <div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h1 class="modal-title fs-5" id="infoModalLabel"></h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <h3> In the chemical industry, the "problem" is that synthesizing a drug takes 6 months and $100,000,
+                  but only 1% of those drugs actually work. Our tool helps chemists process scientific data to skip the
+                  99% that fail.</h3>
+                <p>This tool works by displaying the drugs that target the proteins that drive the cancer: Renal Cell
+                  Carninoma.</p>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+
+              </div>
+            </div>
+          </div>
+        </div>
+
       <form action="/" method="GET">
         <div class="input-group">
           Protein: <input id="protein-search-field" class="form-control" type="text" name="query" placeholder="Protein"
@@ -51,6 +80,97 @@
 
               <h5 class="card-title text-truncate text-center" data-bs-toggle="tooltip" data-bs-title="compound name">
                 compound name</h5>
+            </div>
+          </div>
+        </div>
+
+       
+        <div class="row mt-4" id="ui-container">
+          <div class="col-md-7">
+            <div class="input-group mb-3">
+              <span class="input-group-text">Protein</span>
+              <input id="protein-search-field" class="form-control" type="text" placeholder="Search protein (e.g., VEGF)...">
+              <button class="btn btn-primary" id="search-btn"><i class="bi bi-search"></i></button>
+            </div>
+
+            <div class="card shadow-sm">
+              <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0" id="current-drug-name">Select a Drug</h5>
+                <div>
+                  <span class="badge bg-info text-dark" id="real-compound-badge" style="display:none;">ChEMBL Verified</span>
+                  <button type="button" class="btn btn-sm btn-outline-secondary ms-2" id="close-drug-btn" title="Return to drug list">
+                    <i class="bi bi-x-lg"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div id="molecule-svg-container" class="p-3 text-center" style="min-height: 400px; background: #f8f9fa;">
+                <p class="text-muted mt-5">Search for a protein to begin analysis</p>
+              </div>
+
+              <div class="card-footer text-center">
+                <small class="text-muted">Click a highlighted atom to modify structure</small>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-5">
+            <div class="card shadow-sm h-100">
+              <div class="card-body">
+                <h5 class="border-bottom pb-2">Molecular Analytics</h5>
+
+                <div class="mb-4 mt-3">
+                  <label class="form-label d-flex justify-content-between">
+                    Drug-Likeness (QED) <span id="qed-val" class="fw-bold">0.00</span>
+                  </label>
+                  <div class="progress" style="height: 10px;">
+                    <div id="qed-bar" class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
+                  </div>
+                </div>
+
+                <div class="mb-4">
+                  <label class="form-label d-flex justify-content-between">
+                    Ease of Synthesis (SAScore) <span id="sa-val" class="fw-bold">0.00</span>
+                  </label>
+                  <div class="progress" style="height: 10px;">
+                    <div id="sa-bar" class="progress-bar bg-warning" role="progressbar" style="width: 0%"></div>
+                  </div>
+                  <small class="text-muted">Lower is better (1-10 range)</small>
+                </div>
+
+                <div class="mb-4">
+                  <h6>Lipinski's Rule of Five</h6>
+                  <ul class="list-group list-group-flush small">
+                    <li class="list-group-item d-flex justify-content-between">MW: <span id="mw-val">-</span></li>
+                    <li class="list-group-item d-flex justify-content-between">LogP: <span id="logp-val">-</span></li>
+                    <li class="list-group-item d-flex justify-content-between">H-Donors: <span id="hbd-val">-</span></li>
+                  </ul>
+                </div>
+
+                <div id="alert-container" class="alert alert-danger d-none">
+                  <i class="bi bi-exclamation-triangle-fill"></i> PAINS Alert: <span id="alert-reason"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal fade" id="rGroupModal" tabindex="-1">
+          <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h6 class="modal-title">Swap R-Group</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                <select id="r-group-select" class="form-select">
+                  <option value="Methyl">Methyl (-CH3)</option>
+                  <option value="Fluorine">Fluorine (-F)</option>
+                  <option value="Hydroxyl">Hydroxyl (-OH)</option>
+                  <option value="Trifluoromethyl">Trifluoromethyl (-CF3)</option>
+                </select>
+                <button class="btn btn-primary w-100 mt-3" id="apply-swap-btn">Apply Swap</button>
+              </div>
             </div>
           </div>
         </div>
@@ -77,7 +197,232 @@
 
   {% block scripts %}
   <script>
+  let currentSmiles = "";
+  let selectedAtomIdx = null;
+  let allProteins = [];
 
+  const COMPOUND_DATABASE = {
+    "placer1": "CN1CC(C2=C(C1)C=CC(=C2)F)C3=C(NC(=C3)C)C=O",
+    "placer2": "COC1=CC2=C(C=C1OCC3CCN(CC3)C4=CC=C(C=C4)F)N=CN=C2NC5=CC(=C(C=C5)Cl)F",
+    "placer3": "Cc1c(C[NH+]2CCCC2)sc(NC(=O)Nc2ccc(Cl)cc2)c1",
+    "placer4": "Cc1c(C[NH+]2CCCC2)sc(NC(=O)Nc2ccc(Cl)cc2)c1",
+    "placer5": "CC(C)Cc1ccc(cc1)C(C)C(O)=O"
+  };
+
+  async function loadProteins() {
+    try {
+      const response = await fetch('/api/proteins');
+      allProteins = await response.json();
+      showAllDrugs();
+    } catch(e) {
+      console.error('Error loading proteins:', e);
+    }
+  }
+
+  function showAllDrugs() {
+    let html = '<div class="row g-3">';
+    allProteins.forEach(protein => {
+      protein.drugs.forEach(drug => {
+        html += `
+          <div class="col-md-6">
+            <div class="card h-100 shadow-sm" style="cursor:pointer;" 
+               onclick="loadDrug('${drug.compound}', '${drug.name}')">
+              <div class="card-body">
+                <h6 class="card-title">${drug.name}</h6>
+                <small class="text-muted d-block mb-2">${protein.id}</small>
+                <div style="height:120px; display:flex; align-items:center; justify-content:center; background:#f8f9fa; border-radius:4px; font-size:12px; color:#999;">
+                  <span class="loader-${drug.compound}">Loading...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+    });
+    html += '</div>';
+    document.getElementById('molecule-svg-container').innerHTML = html;
+    document.getElementById('current-drug-name').innerText = 'Available Drugs';
+    allProteins.forEach(protein => {
+      protein.drugs.forEach(drug => loadDrugImage(drug.compound));
+    });
+  }
+
+  async function loadDrugImage(compoundId) {
+    try {
+      const response = await fetch(`/api/molecule-metadata/${compoundId}`);
+      if (!response.ok) throw new Error('Failed to fetch metadata');
+      const data = await response.json();
+      const loader = document.querySelector(`.loader-${compoundId}`);
+      if (loader && data.molecule_svg) {
+        loader.parentElement.innerHTML = data.molecule_svg;
+        loader.parentElement.style.background = 'white';
+      }
+    } catch(e) {
+      console.error(`Error loading image for ${compoundId}:`, e);
+    }
+  }
+
+  document.getElementById('search-btn')?.addEventListener('click', searchProteins);
+  document.getElementById('protein-search-field')?.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') searchProteins();
+  });
+
+  function searchProteins() {
+    const searchTerm = document.getElementById('protein-search-field').value.toLowerCase();
+    if (!searchTerm) {
+      showAllDrugs();
+      return;
+    }
+    let html = '<div class="row g-3">';
+    let found = false;
+    allProteins.forEach(protein => {
+      if (protein.id.toLowerCase().includes(searchTerm)) {
+        found = true;
+        html += `<div class="col-12"><h6 class="mt-2">${protein.id}</h6></div>`;
+        protein.drugs.forEach(drug => {
+          html += `
+            <div class="col-md-6">
+              <div class="card h-100 shadow-sm" style="cursor:pointer;" 
+                 onclick="loadDrug('${drug.compound}', '${drug.name}')">
+                <div class="card-body">
+                  <h6 class="card-title">${drug.name}</h6>
+                  <small class="text-muted d-block mb-2">${drug.compound}</small>
+                  <div style="height:120px; display:flex; align-items:center; justify-content:center; background:#f8f9fa; border-radius:4px; font-size:12px; color:#999;">
+                    <span class="loader-${drug.compound}">Loading...</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+      }
+    });
+    if (!found) {
+      html = '<p class="text-muted">No proteins found matching "' + searchTerm + '"</p>';
+    } else {
+      html += '</div>';
+    }
+    document.getElementById('molecule-svg-container').innerHTML = html;
+    document.getElementById('current-drug-name').innerText = 'Search Results: ' + searchTerm;
+    allProteins.forEach(protein => {
+      if (protein.id.toLowerCase().includes(searchTerm)) {
+        protein.drugs.forEach(drug => loadDrugImage(drug.compound));
+      }
+    });
+  }
+
+  async function loadDrug(compoundId, drugName) {
+    try {
+      currentSmiles = COMPOUND_DATABASE[compoundId] || "";
+      document.getElementById('current-drug-name').innerText = drugName;
+      const response = await fetch(`/api/molecule-metadata/${compoundId}`);
+      if (!response.ok) throw new Error('Failed to fetch metadata');
+      const data = await response.json();
+      let html = `
+        <div style="display:flex; flex-direction:column; gap:15px;">
+          <div style="text-align:center; padding:20px; background:#f8f9fa; border-radius:8px;">
+            ${data.molecule_svg}
+            <p style="margin-top:10px; font-size:12px; color:#666;">Click on atoms to modify → Select R-group → Apply Changes</p>
+          </div>
+          <div id="r-group-container" style="display:none; padding:15px; background:#e3f2fd; border-radius:8px; text-align:center;">
+            <p style="margin-bottom:10px; font-weight:500;">Choose an R-group:</p>
+            <select id="r-group-select" class="form-select form-select-sm" style="margin-bottom:10px;">
+              <option value="">-- Select R-group --</option>
+              <option value="Methyl">Methyl (-CH3)</option>
+              <option value="Fluorine">Fluorine (-F)</option>
+              <option value="Hydroxyl">Hydroxyl (-OH)</option>
+              <option value="Trifluoromethyl">Trifluoromethyl (-CF3)</option>
+            </select>
+            <button id="apply-swap-btn" class="btn btn-sm btn-success">Apply Changes</button>
+            <button id="cancel-swap-btn" class="btn btn-sm btn-secondary ms-2">Cancel</button>
+          </div>
+        </div>
+      `;
+      document.getElementById('molecule-svg-container').innerHTML = html;
+      updateAnalytics({
+        drug_likeness: 0.75,
+        stability_score: 3.5,
+        mw: 430,
+        logp: 2.1,
+        hbd: 3
+      });
+      setTimeout(() => {
+        document.querySelectorAll('[data-atom-idx]').forEach(el => {
+          el.style.cursor = 'pointer';
+          el.style.fill = '#FFE5B4';
+          el.style.stroke = '#FF8C00';
+          el.style.strokeWidth = '2';
+          el.addEventListener('click', function(e) {
+            e.stopPropagation();
+            selectedAtomIdx = this.getAttribute('data-atom-idx');
+            document.getElementById('r-group-container').style.display = 'block';
+            document.querySelectorAll('[data-atom-idx]').forEach(a => a.style.opacity = '0.5');
+            this.style.opacity = '1';
+          });
+        });
+      }, 0);
+      document.getElementById('cancel-swap-btn')?.addEventListener('click', () => {
+        selectedAtomIdx = null;
+        document.getElementById('r-group-container').style.display = 'none';
+        document.querySelectorAll('[data-atom-idx]').forEach(el => el.style.opacity = '1');
+      });
+    } catch(e) {
+      console.error('Error loading drug:', e);
+      document.getElementById('molecule-svg-container').innerHTML = '<p class="text-danger">Error loading drug details</p>';
+    }
+  }
+
+  function updateAnalytics(data) {
+    document.getElementById('qed-val').innerText = (data.drug_likeness || 0).toFixed(2);
+    document.getElementById('sa-val').innerText = (data.stability_score || 0).toFixed(1);
+    document.getElementById('mw-val').innerText = Math.round(data.mw || 0);
+    document.getElementById('logp-val').innerText = (data.logp || 0).toFixed(2);
+    document.getElementById('hbd-val').innerText = Math.round(data.hbd || 0);
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('apply-swap-btn')?.addEventListener('click', async () => {
+      if (!currentSmiles || selectedAtomIdx === null) {
+        alert('Please select an atom first');
+        return;
+      }
+      const newGroup = document.getElementById('r-group-select').value;
+      if (!newGroup) {
+        alert('Please select an R-group');
+        return;
+      }
+      try {
+        const response = await fetch('/api/modify-drug', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            smiles: currentSmiles,
+            atom_idx: parseInt(selectedAtomIdx),
+            new_group: newGroup
+          })
+        });
+        if (!response.ok) throw new Error('Failed to modify drug');
+        const data = await response.json();
+        if (data.modified_svg) {
+          document.getElementById('molecule-svg-container').innerHTML = data.modified_svg;
+        }
+        if (data.qed || data.sa_score || data.lipinski || data.pains) {
+          updateAnalytics({
+            drug_likeness: data.qed,
+            stability_score: data.sa_score,
+            mw: data.lipinski?.mw,
+            logp: data.lipinski?.logp,
+            hbd: data.lipinski?.hbd
+          });
+        }
+      } catch(e) {
+        console.error('Error applying swap:', e);
+        alert('Error applying swap');
+      }
+    });
+    document.getElementById('close-drug-btn')?.addEventListener('click', showAllDrugs);
+    loadProteins();
+  });
   </script>
   {% endblock scripts %}
 
