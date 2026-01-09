@@ -75,52 +75,100 @@
 
         <div id="drugResults"></div>
 
-      </div>
 
 
-      <div class="col-md-5">
-        <div class="card shadow-sm h-100">
-          <div class="card-body">
-            <h5 class="border-bottom pb-2">Molecular Analytics</h5>
+        <div class="col-md-5">
+          <div class="card shadow-sm h-100">
+            <div class="card-body">
+              <h5 class="border-bottom pb-2">Molecular Analytics</h5>
 
-            <div class="mb-4 mt-3">
-              <label class="form-label d-flex justify-content-between">
-                Drug-Likeness (QED) <span id="qed-val" class="fw-bold">0.00</span>
-              </label>
-              <div class="progress" style="height: 10px;">
-                <div id="qed-bar" class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
+              <div class="mb-4 mt-3">
+                <label class="form-label d-flex justify-content-between">
+                  Drug-Likeness (QED) <span id="qed-val" class="fw-bold">0.00</span>
+                </label>
+                <div class="progress" style="height: 10px;">
+                  <div id="qed-bar" class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
+                </div>
               </div>
-            </div>
 
-            <div class="mb-4">
-              <label class="form-label d-flex justify-content-between">
-                Ease of Synthesis (SAScore) <span id="sa-val" class="fw-bold">0.00</span>
-              </label>
-              <div class="progress" style="height: 10px;">
-                <div id="sa-bar" class="progress-bar bg-warning" role="progressbar" style="width: 0%"></div>
+              <div class="mb-4">
+                <label class="form-label d-flex justify-content-between">
+                  Ease of Synthesis (SAScore) <span id="sa-val" class="fw-bold">0.00</span>
+                </label>
+                <div class="progress" style="height: 10px;">
+                  <div id="sa-bar" class="progress-bar bg-warning" role="progressbar" style="width: 0%"></div>
+                </div>
+                <small class="text-muted">Lower is better (1-10 range)</small>
               </div>
-              <small class="text-muted">Lower is better (1-10 range)</small>
-            </div>
 
-            <div class="mb-4">
-              <h6>Lipinski's Rule of Five</h6>
-              <ul class="list-group list-group-flush small">
-                <li class="list-group-item d-flex justify-content-between">MW: <span id="mw-val">-</span></li>
-                <li class="list-group-item d-flex justify-content-between">LogP: <span id="logp-val">-</span></li>
-                <li class="list-group-item d-flex justify-content-between">H-Donors: <span id="hbd-val">-</span>
-                </li>
-              </ul>
-            </div>
+              <div class="mb-4">
+                <h6>Lipinski's Rule of Five</h6>
+                <ul class="list-group list-group-flush small">
+                  <li class="list-group-item d-flex justify-content-between">MW: <span id="mw-val">-</span></li>
+                  <li class="list-group-item d-flex justify-content-between">LogP: <span id="logp-val">-</span></li>
+                  <li class="list-group-item d-flex justify-content-between">H-Donors: <span id="hbd-val">-</span>
+                  </li>
+                </ul>
+              </div>
 
-            <div id="alert-container" class="alert alert-danger d-none">
-              <i class="bi bi-exclamation-triangle-fill"></i> PAINS Alert: <span id="alert-reason"></span>
+              <div id="alert-container" class="alert alert-danger d-none">
+                <i class="bi bi-exclamation-triangle-fill"></i> PAINS Alert: <span id="alert-reason"></span>
+              </div>
             </div>
           </div>
         </div>
       </div>
+
+      {% endblock content %}
+
+      <div id="drugResults"></div>
+
     </div>
 
-    {% endblock content %}
+
+    <div class="col-md-5">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <h5 class="border-bottom pb-2">Molecular Analytics</h5>
+
+          <div class="mb-4 mt-3">
+            <label class="form-label d-flex justify-content-between">
+              Drug-Likeness (QED) <span id="qed-val" class="fw-bold">0.00</span>
+            </label>
+            <div class="progress" style="height: 10px;">
+              <div id="qed-bar" class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label d-flex justify-content-between">
+              Ease of Synthesis (SAScore) <span id="sa-val" class="fw-bold">0.00</span>
+            </label>
+            <div class="progress" style="height: 10px;">
+              <div id="sa-bar" class="progress-bar bg-warning" role="progressbar" style="width: 0%"></div>
+            </div>
+            <small class="text-muted">Lower is better (1-10 range)</small>
+          </div>
+
+          <div class="mb-4">
+            <h6>Lipinski's Rule of Five</h6>
+            <ul class="list-group list-group-flush small">
+              <li class="list-group-item d-flex justify-content-between">MW: <span id="mw-val">-</span></li>
+              <li class="list-group-item d-flex justify-content-between">LogP: <span id="logp-val">-</span></li>
+              <li class="list-group-item d-flex justify-content-between">H-Donors: <span id="hbd-val">-</span>
+              </li>
+            </ul>
+          </div>
+
+          <div id="alert-container" class="alert alert-danger d-none">
+            <i class="bi bi-exclamation-triangle-fill"></i> PAINS Alert: <span id="alert-reason"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% endblock content %}
 
   </div>
   <div>
@@ -142,6 +190,120 @@
     document.getElementById('protein-search-field').addEventListener('input', function (e) {
       const proteinName = e.target.value.trim();
 
+      if (proteinName.length < 2) {
+        document.getElementById('drugResults').innerHTML = '';
+        return;
+      }
+
+      // Step 1: Get the drugs for this protein
+      fetch(`/api/drugs-by-protein/${proteinName}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.error) {
+            document.getElementById('drugResults').innerHTML = '<p>No drugs found</p>';
+            return;
+          }
+
+          // Step 2: For EACH drug, fetch its molecule metadata
+          const drugPromises = data.drugs.map(drug => {
+            // Get the compound_id from your proteins array or use drug name
+            return fetch(`/api/molecule-metadata/${drug.name}`)
+              .then(res => res.json())
+              .then(metadata => ({
+                name: drug.name,
+                svg: metadata.molecule_svg,
+                smiles: drug.smiles
+              }))
+              .catch(err => ({
+                name: drug.name,
+                svg: '<p>Error loading molecule</p>',
+                smiles: drug.smiles
+              }));
+          });
+
+          // Step 3: Wait for ALL molecule data, then display
+          Promise.all(drugPromises).then(drugsWithMolecules => {
+            let html = '<div class="drug-grid row">';
+
+            drugsWithMolecules.forEach(drug => {
+              html += `
+            <div class="col-md-4 drug-container mb-3">
+              <div class="card">
+                <div class="card-body">
+                  ${drug.svg}
+                </div>
+                <div class="card-footer">
+                  <h5 class="card-title text-center">${drug.name}</h5>
+                  <small class="text-muted d-block text-center">${drug.smiles}</small>
+                </div>
+              </div>
+            </div>
+          `;
+            });
+
+            html += '</div>';
+            document.getElementById('drugResults').innerHTML = html;
+          });
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          document.getElementById('drugResults').innerHTML = '<p>Error loading drugs</p>';
+        });
+    });
+
+
+    //Analytics
+    function updateAnalytics(data) {
+      document.getElementById('qed-val').innerText = (data.drug_likeness || 0).toFixed(2);
+      document.getElementById('sa-val').innerText = (data.stability_score || 0).toFixed(1);
+      document.getElementById('mw-val').innerText = Math.round(data.mw || 0);
+      document.getElementById('logp-val').innerText = (data.logp || 0).toFixed(2);
+      document.getElementById('hbd-val').innerText = Math.round(data.hbd || 0);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('apply-swap-btn')?.addEventListener('click', async () => {
+        if (!currentSmiles || selectedAtomIdx === null) {
+          alert('Please select an atom first');
+          return;
+        }
+        const newGroup = document.getElementById('r-group-select').value;
+        if (!newGroup) {
+          alert('Please select an R-group');
+          return;
+        }
+        try {
+          const response = await fetch('/api/modify-drug', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              smiles: currentSmiles,
+              atom_idx: parseInt(selectedAtomIdx),
+              new_group: newGroup
+            })
+          });
+          if (!response.ok) throw new Error('Failed to modify drug');
+          const data = await response.json();
+          if (data.modified_svg) {
+            document.getElementById('molecule-svg-container').innerHTML = data.modified_svg;
+          }
+          if (data.qed || data.sa_score || data.lipinski || data.pains) {
+            updateAnalytics({
+              drug_likeness: data.qed,
+              stability_score: data.sa_score,
+              mw: data.lipinski?.mw,
+              logp: data.lipinski?.logp,
+              hbd: data.lipinski?.hbd
+            });
+          }
+        } catch (e) {
+          console.error('Error applying swap:', e);
+          alert('Error applying swap');
+        }
+      });
+      document.getElementById('close-drug-btn')?.addEventListener('click', showAllDrugs);
+      loadProteins();
+    });
   </script>
   {% endblock scripts %}
 
