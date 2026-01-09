@@ -59,8 +59,8 @@ logger = logging.getLogger(__name__)
 drug_data = {
     "Sunitinib": "CCN(CC)CCNC(=O)c1c(C)[nH]c(\\C=C2/C(=O)Nc3ccc(F)cc23)c1C",
     "Cabozantinib": "COc1cc2c(cc1OC)nccc2Oc3ccc(cc3)NC(=O)C4(CC4)C(=O)Nc5ccc(cc5)F",
-    "Everolimus": "CC1CCC2(C(C1)C3CC4C5C(C3)C(C(C4(C)C)OC6C(C(C(C(O6)C)O)O)O)C(C5)C)C(=O)OC7CC(CC(C7)O)OC(=O)C8CC(C(C(C8)O)O)O",
-    "Temsirolimus": "CC1CCC2(C(C1)C3CC4C5C(C3)C(C(C4(C)C)OC6C(C(C(C(O6)C)O)O)O)C(C5)C)C(=O)OC7CC(CC(C7)O)OC(=O)C8CC(C(C(C8)O)O)O",
+    "Everolimus": "CC1CCC2CC(C(=CC=CC=CC(CC(C(=O)C(C(C(=CC(C(=O)CC(OC(=O)C3CCCCN3C(=O)C(=O)C1(O2)O)C(C)CC4CCC(C(C4)OC)OCCO)C)C)O)OC)C)C)C)OC",
+    "Temsirolimus": "COC1CC(CCC1OC(=O)C(CO)(CO)C)CC(C1OC(=O)C2CCCCN2C(=O)C(=O)C2(O)OC(CCC2C)CC(OC)C(=CC=CC=CC(CC(C(=O)C(C(C(=CC(C(=O)C1)C)C)O)OC)C)C)C)C",
 }
 
 # Protein to drug mapping
