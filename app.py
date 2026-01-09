@@ -68,7 +68,7 @@ def get_molecule_ui_data(compound_id):
         return jsonify({"error": "Compound not found"}), 404
 
     try:
-        # This calls the get_ui_metadata function from your backend module
+        # calls the get_ui_metadata function from backend module
         metadata = get_ui_metadata(smiles)
         return jsonify(metadata)
     except Exception as e:
@@ -164,8 +164,8 @@ def modify_drug():
         atom_idx = int(raw_atom_idx)
     except (TypeError, ValueError):
         return jsonify({"error": "Invalid atom_idx: must be an integer"}), 400
-
-    # Call the main validation function
+        
+    # main validation function
     try:
         result = validate_and_optimize_compound(old_smiles, atom_idx, new_group)
         return jsonify(result)
