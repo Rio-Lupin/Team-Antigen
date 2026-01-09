@@ -121,55 +121,6 @@
 
       {% endblock content %}
 
-      <div id="drugResults"></div>
-
-    </div>
-
-
-    <div class="col-md-5">
-      <div class="card shadow-sm h-100">
-        <div class="card-body">
-          <h5 class="border-bottom pb-2">Molecular Analytics</h5>
-
-          <div class="mb-4 mt-3">
-            <label class="form-label d-flex justify-content-between">
-              Drug-Likeness (QED) <span id="qed-val" class="fw-bold">0.00</span>
-            </label>
-            <div class="progress" style="height: 10px;">
-              <div id="qed-bar" class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
-            </div>
-          </div>
-
-          <div class="mb-4">
-            <label class="form-label d-flex justify-content-between">
-              Ease of Synthesis (SAScore) <span id="sa-val" class="fw-bold">0.00</span>
-            </label>
-            <div class="progress" style="height: 10px;">
-              <div id="sa-bar" class="progress-bar bg-warning" role="progressbar" style="width: 0%"></div>
-            </div>
-            <small class="text-muted">Lower is better (1-10 range)</small>
-          </div>
-
-          <div class="mb-4">
-            <h6>Lipinski's Rule of Five</h6>
-            <ul class="list-group list-group-flush small">
-              <li class="list-group-item d-flex justify-content-between">MW: <span id="mw-val">-</span></li>
-              <li class="list-group-item d-flex justify-content-between">LogP: <span id="logp-val">-</span></li>
-              <li class="list-group-item d-flex justify-content-between">H-Donors: <span id="hbd-val">-</span>
-              </li>
-            </ul>
-          </div>
-
-          <div id="alert-container" class="alert alert-danger d-none">
-            <i class="bi bi-exclamation-triangle-fill"></i> PAINS Alert: <span id="alert-reason"></span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  {% endblock content %}
-
   </div>
   <div>
 

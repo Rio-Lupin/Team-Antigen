@@ -50,7 +50,7 @@
 
 ---
 
-## 🔄 How Backend Components Work Together
+## How Backend Components Work Together
 
 ### 1. **chemistry.py** - The Core Module
 **Purpose:** Central data storage and chemistry functions
@@ -104,7 +104,7 @@ python backend/test-1.py
 
 ---
 
-## 📡 API Endpoints Reference
+##  API Endpoints Reference
 
 ### 1. Get All Proteins
 ```
@@ -232,7 +232,7 @@ Content-Type: application/json
 
 ---
 
-## 🎨 Frontend Developer Guide
+##  Frontend Developer Guide
 
 ### What You Need to Know
 
@@ -402,7 +402,7 @@ async function applyModification(atomIdx, rGroup) {
 
 ---
 
-## 🔀 Data Flow Examples
+##  Data Flow Examples
 
 ### Example 1: User Views Drugs for a Protein
 
@@ -452,7 +452,7 @@ async function applyModification(atomIdx, rGroup) {
 
 ---
 
-## 🗂️ File Structure Summary
+## File Structure Summary
 
 ```
 Team-Antigen/
@@ -467,7 +467,7 @@ Team-Antigen/
 
 ---
 
-## 🔑 Key Points for Frontend Dev
+##  Key Points for Frontend Dev
 
 1. **All molecule data comes from `chemistry.py`** - no hardcoding needed
 2. **SVG strings are ready to use** - just insert into DOM with `innerHTML`
