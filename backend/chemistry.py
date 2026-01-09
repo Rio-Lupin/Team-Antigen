@@ -7,8 +7,10 @@ from typing import Dict, List, Optional, Tuple, Any
 import logging
 import re
 from rdkit import Chem
-from rdkit.Chem import QED, AllChem, rdMolDraw2D, rdDepictor
+from rdkit.Chem import QED, AllChem, Descriptors, rdMolDescriptors, FilterCatalog
 from rdkit.Chem import rdCoordGen
+from rdkit.Chem.Draw import rdMolDraw2D
+from rdkit import rdBase
 
 # Try multiple import paths for SA_Score (varies by installation method)
 # Note: SA_Score is in RDKit's Contrib directory which may not be in Python path
@@ -168,6 +170,7 @@ def _replace_terminal_atom(mol: Chem.Mol, atom_idx: int, new_group_smiles: str) 
             return None
         
         neighbor = neighbors[0]
+        neighbor_idx = neighbor.GetIdx()
         bond = mol.GetBondBetweenAtoms(neighbor.GetIdx(), atom_idx)
         bond_order = bond.GetBondTypeAsDouble()
         
@@ -207,7 +210,6 @@ def _replace_terminal_atom(mol: Chem.Mol, atom_idx: int, new_group_smiles: str) 
             if rxn is not None:
                 # Prepare molecule with mapping
                 mol_with_map = Chem.RWMol(mol)
-                neighbor_idx = neighbor.GetIdx()
                 mol_with_map.GetAtomWithIdx(neighbor_idx).SetAtomMapNum(1)
                 mol_with_map.GetAtomWithIdx(atom_idx).SetAtomMapNum(2)
                 mol_with_map = mol_with_map.GetMol()
@@ -228,15 +230,7 @@ def _replace_terminal_atom(mol: Chem.Mol, atom_idx: int, new_group_smiles: str) 
         # Alternative: Manual bond cutting and group attachment
         try:
             editable_mol = Chem.RWMol(mol)
-            neighbor_idx = neighbor.GetIdx()
-            
-            # Remove the old atom
-            editable_mol.RemoveAtom(atom_idx)
-            
-            # Get the updated neighbor index (may have shifted)
-            # Since we removed atom_idx, all indices >= atom_idx shift by -1
-            if neighbor_idx > atom_idx:
-                neighbor_idx -= 1
+            stored_neighbor_idx = neighbor_idx
             
             # Parse the new group
             new_group_mol = Chem.MolFromSmiles(new_group_smiles)
@@ -258,7 +252,11 @@ def _replace_terminal_atom(mol: Chem.Mol, atom_idx: int, new_group_smiles: str) 
                     )
                 
                 # Connect the new group to the neighbor (attach at first atom)
-                editable_mol.AddBond(neighbor_idx, new_group_atoms[0], Chem.BondType.SINGLE)
+                editable_mol.AddBond(stored_neighbor_idx, new_group_atoms[0], Chem.BondType.SINGLE)
+
+                # Remove the old atom
+                editable_mol.RemoveAtom(atom_idx)
+            
                 
                 final_mol = editable_mol.GetMol()
                 Chem.SanitizeMol(final_mol)
@@ -327,13 +325,13 @@ def _direct_replacement_fallback(mol: Chem.Mol, atom_idx: int, new_group_smiles:
         return None
 
 
-def calculate_stability_score(smiles: str) -> Optional[float]:
+def calculate_stability_score(mol: Chem.Mol) -> Optional[float]:
     """
     Calculate the synthetic accessibility score (SAScore) for a molecule.
     Lower scores indicate easier synthesis.
     
     Args:
-        smiles: SMILES string of the molecule
+        mol: RDKit molecule object
         
     Returns:
         SAScore (typically 1-10, lower is better) or None if invalid
@@ -341,13 +339,7 @@ def calculate_stability_score(smiles: str) -> Optional[float]:
     if not SA_SCORE_AVAILABLE or sascorer is None:
         logger.warning("SA_Score not available. Cannot calculate stability score.")
         return None
-    
-    try:
-        mol = Chem.MolFromSmiles(smiles)
-        if mol is None:
-            logger.warning(f"Invalid SMILES for stability score: {smiles}")
-            return None
-        
+    try:   
         score = sascorer.calculateScore(mol)
         return round(score, 2)
     except Exception as e:
@@ -355,29 +347,80 @@ def calculate_stability_score(smiles: str) -> Optional[float]:
         return None
 
 
-def calculate_drug_likeness(smiles: str) -> Optional[float]:
+def calculate_drug_likeness(mol: Chem.Mol) -> Optional[float]:
     """
     Calculate the Quantitative Estimate of Drug-likeness (QED) score.
     Higher scores (closer to 1.0) indicate better drug-likeness.
     
     Args:
-        smiles: SMILES string of the molecule
+        mol: RDKit molecule object
         
     Returns:
         QED score (0-1, higher is better) or None if invalid
     """
     try:
-        mol = Chem.MolFromSmiles(smiles)
-        if mol is None:
-            logger.warning(f"Invalid SMILES for drug-likeness: {smiles}")
-            return None
-        
         score = QED.qed(mol)
         return round(score, 3)
     except Exception as e:
         logger.error(f"Error calculating drug-likeness: {str(e)}")
         return None
 
+
+def check_lipinski_rules(mol: Chem.Mol) -> Dict[str, Any]:
+    """Checks Lipinski's Rule of Five compliance.
+
+    Args:
+        mol: RDKit molecule object
+    Returns:
+        Dictionary with compliance status and property values
+    
+    """
+    try:
+        mw = Descriptors.MolWt(mol)  # Molecular weight, not exact mass
+        logp = Descriptors.MolLogP(mol)  # Standard LogP calculation
+        h_donors = Descriptors.NumHDonors(mol)  # Correct function name
+        h_acceptors = Descriptors.NumHAcceptors(mol)  # Correct function name
+
+        violations = sum([mw > 500, logp > 5, h_donors > 5, h_acceptors > 10])
+
+        complies = violations == 0
+
+        return {
+            "complies": complies,
+            "violations": violations,
+            "molecular_weight": round(mw, 2),
+            "logP": round(logp, 2),
+            "h_donors": h_donors,
+            "h_acceptors": h_acceptors
+        }
+    except Exception as e:
+        logger.error(f"Lipinski check failed: {e}")
+        return {}
+    
+
+def check_structural_alerts(mol: Chem.Mol) -> Dict[str, Any]:
+    """Checks Structural Alerts (PAINS).
+
+    Args:
+        mol: RDKit molecule object
+
+    Returns:
+        Dictionary with alert status and reason
+    """
+    try:
+        params = FilterCatalog.FilterCatalogParams()
+        params.AddCatalog(FilterCatalog.FilterCatalogParams.FilterCatalogs.PAINS)
+        catalog = FilterCatalog.FilterCatalog(params)
+        has_alert = catalog.HasMatch(mol)
+        alert_reason = catalog.GetFirstMatch(mol).GetDescription() if has_alert else "None"
+
+        return {
+            "has_alert": has_alert,
+            "alert_reason": alert_reason
+        }
+    except Exception as e:
+        logger.error(f"PAINS alert: {str(e)}")
+        return {}
 
 def verify_if_real_compound(smiles: str) -> Tuple[bool, Optional[str]]:
     """
@@ -698,6 +741,8 @@ def validate_and_optimize_compound(old_smiles: str, atom_idx: int,
         "new_smiles": None,
         "stability_score": None,
         "drug_likeness": None,
+        "lipinski_compliance": None,
+        "structural_alerts": None,
         "is_real_compound": False,
         "compound_name": None,
         "molecule_svg": None,
@@ -719,9 +764,16 @@ def validate_and_optimize_compound(old_smiles: str, atom_idx: int,
         result["success"] = True
         
         # Validate the new compound
-        result["stability_score"] = calculate_stability_score(new_smiles)
-        result["drug_likeness"] = calculate_drug_likeness(new_smiles)
-        
+        mol = Chem.MolFromSmiles(new_smiles)
+        if mol is None:
+            result["error"] = "Resulting SMILES is invalid."
+            result["success"] = False
+            return result
+        result["stability_score"] = calculate_stability_score(mol)
+        result["drug_likeness"] = calculate_drug_likeness(mol)
+        result["lipinski_compliance"] = check_lipinski_rules(mol)
+        result["structural_alerts"] = check_structural_alerts(mol)
+
         # Check ChEMBL database
         try:
             is_real, compound_name = verify_if_real_compound(new_smiles)
