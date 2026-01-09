@@ -476,8 +476,9 @@ def check_lipinski_rules(mol: Chem.Mol) -> Dict[str, Any]:
         logp = Descriptors.MolLogP(mol)  # Standard LogP calculation
         h_donors = Descriptors.NumHDonors(mol)  # Correct function name
         h_acceptors = Descriptors.NumHAcceptors(mol)  # Correct function name
+        rotatable_bonds = Descriptors.NumRotatableBonds(mol)  # Number of rotatable bonds
 
-        violations = sum([mw > 500, logp > 5, h_donors > 5, h_acceptors > 10])
+        violations = sum([mw > 500, logp > 5, h_donors > 5, h_acceptors > 10, rotatable_bonds > 10])
 
         complies = violations == 0
 
@@ -488,6 +489,7 @@ def check_lipinski_rules(mol: Chem.Mol) -> Dict[str, Any]:
             "logP": round(logp, 2),
             "h_donors": h_donors,
             "h_acceptors": h_acceptors,
+            "rotatable_bonds": rotatable_bonds,
         }
     except Exception as e:
         logger.error(f"Lipinski check failed: {e}")

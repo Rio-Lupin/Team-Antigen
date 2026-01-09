@@ -238,6 +238,8 @@
                     </li>
                     <li class="list-group-item d-flex justify-content-between">H-Acceptors: <span id="hba-val">-</span>
                     </li>
+                    <li class="list-group-item d-flex justify-content-between">Rotatable Bonds: <span id="rot-bonds-val">-</span>
+                    </li>
                   </ul>
                 </div>
 
@@ -245,8 +247,8 @@
                   <h6 class="mb-1">Quick Guide</h6>
                   <ul class="text-muted small mb-0 ps-3">
                     <li>QED: scoring system 0 to 1 that assesses how similar a molecule's properties are to those of known drugs (higher scores = more drug-like)</li>
-                    <li>SAScore: synthetic accessibility score from 1 to 10 estimates how easy a molecule is to make in a lab (lowerer score = higher feasibility)</li>
-                    <li>Lipinski's Ro5: a set of guidelines to predict if a compound is likely to be orally active (bioavailable) in humans (MW ≤ 500, LogP ≤ 5, HBD ≤ 5, HBA ≤ 10)</li>
+                    <li>SAScore: synthetic accessibility score from 1 to 10 estimates how easy a molecule is to make in a lab (lower score = higher feasibility)</li>
+                    <li>Lipinski's Ro5: a set of guidelines to predict if a compound is likely to be orally active in humans (MW ≤ 500, LogP ≤ 5, HBD ≤ 5, HBA ≤ 10, Rot. Bonds ≤ 10)</li>
                   </ul>
                 </div>
 
@@ -439,6 +441,7 @@
         document.getElementById('logp-val').innerText = (lipinski.logP || 0).toFixed(2);
         document.getElementById('hbd-val').innerText = Math.round(lipinski.h_donors || 0);
         document.getElementById('hba-val').innerText = Math.round(lipinski.h_acceptors || 0);
+        document.getElementById('rot-bonds-val').innerText = Math.round(lipinski.rotatable_bonds || 0);
         const statusEl = document.getElementById('lipinski-status');
         statusEl.innerHTML = lipinski.complies
           ? 'Pass <i class="bi bi-check-circle-fill text-success"></i>'
@@ -449,6 +452,7 @@
         document.getElementById('logp-val').innerText = (data.logp || 0).toFixed(2);
         document.getElementById('hbd-val').innerText = Math.round(data.hbd || 0);
         document.getElementById('hba-val').innerText = Math.round(data.hba || 0);
+        document.getElementById('rot-bonds-val').innerText = '-';
         const statusEl = document.getElementById('lipinski-status');
         statusEl.innerHTML = 'Not available <i class="bi bi-x-circle-fill text-danger"></i>';
       }
