@@ -3,3 +3,4 @@ djlint==1.36.3
 Flask==3.1.0
 python-dotenv==1.0.1
 rdkit==2024.3.6
+chembl_webresource_client==0.10.8
