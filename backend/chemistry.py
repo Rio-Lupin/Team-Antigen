@@ -598,7 +598,10 @@ def smiles_to_svg(
         AllChem.Compute2DCoords(mol)
 
     drawer = rdMolDraw2D.MolDraw2DSVG(width, height)
-
+    
+    # Get drawer options to understand coordinate system
+    drawer_opts = drawer.drawOptions()
+    
     # Configure highlighting if atom index is provided
     highlight_atoms = []
     highlight_bonds = []
@@ -628,80 +631,147 @@ def smiles_to_svg(
     drawer.FinishDrawing()
 
     svg_text = drawer.GetDrawingText()
+    
+    # Get actual drawn coordinates using RDKit's GetDrawCoords
+    # This gives us the exact screen positions after drawing (most accurate method)
+    draw_coords_dict = {}
+    if modifiable_atoms:
+        try:
+            # GetDrawCoords returns Point2D objects with x and y attributes
+            # These are the actual screen coordinates RDKit uses
+            for atom_idx in modifiable_atoms:
+                if 0 <= atom_idx < mol.GetNumAtoms():
+                    try:
+                        pos = drawer.GetDrawCoords(atom_idx)
+                        # Point2D has x and y attributes
+                        draw_coords_dict[atom_idx] = (float(pos.x), float(pos.y))
+                    except Exception as e:
+                        logger.debug(f"Could not get draw coords for atom {atom_idx}: {str(e)}")
+                        pass
+        except Exception as e:
+            logger.debug(f"Could not use GetDrawCoords: {str(e)}")
 
     # Add clickable overlays for modifiable atoms
     if modifiable_atoms:
         svg_text = _add_clickable_atoms_to_svg(
-            svg_text, mol, modifiable_atoms, width, height
+            svg_text, mol, modifiable_atoms, width, height, drawer, drawer_opts, draw_coords_dict
         )
 
     return svg_text
 
 
 def _add_clickable_atoms_to_svg(
-    svg_text: str, mol: Chem.Mol, modifiable_atoms: List[int], width: int, height: int
+    svg_text: str, mol: Chem.Mol, modifiable_atoms: List[int], width: int, height: int, drawer=None, drawer_opts=None, draw_coords_dict: Optional[Dict[int, Tuple[float, float]]] = None
 ) -> str:
     """
     Add clickable overlay circles to SVG for modifiable atoms.
     Inserts transparent circles with data attributes for JavaScript interaction.
+    
+    Extracts actual atom positions from SVG text elements that RDKit draws,
+    which provides the most accurate coordinates matching the rendered atoms.
     """
     try:
-        # Get atom coordinates from the molecule
-        conf = mol.GetConformer()
-
-        # Find the viewBox or bounds from the SVG
-        viewbox_match = re.search(r'viewBox="([^"]*)"', svg_text)
-        if viewbox_match:
-            viewbox_parts = viewbox_match.group(1).split()
-            if len(viewbox_parts) >= 4:
-                svg_x = float(viewbox_parts[0])
-                svg_y = float(viewbox_parts[1])
-                svg_width = float(viewbox_parts[2])
-                svg_height = float(viewbox_parts[3])
-            else:
-                svg_x, svg_y, svg_width, svg_height = 0, 0, width, height
-        else:
-            svg_x, svg_y, svg_width, svg_height = 0, 0, width, height
-
-        # Get molecule bounds from coordinates
-        coords = [conf.GetAtomPosition(i) for i in range(mol.GetNumAtoms())]
-        if not coords:
-            return svg_text
-
-        min_x = min(c.x for c in coords)
-        max_x = max(c.x for c in coords)
-        min_y = min(c.y for c in coords)
-        max_y = max(c.y for c in coords)
-        mol_width = max_x - min_x if max_x != min_x else 1
-        mol_height = max_y - min_y if max_y != min_y else 1
-
-        # Scale factor from molecule coordinates to SVG pixels
-        scale_x = svg_width / mol_width if mol_width > 0 else 1
-        scale_y = svg_height / mol_height if mol_height > 0 else 1
-        scale = min(scale_x, scale_y) * 0.8  # Use smaller scale to leave margin
-
-        # Center offset
-        center_x = (min_x + max_x) / 2
-        center_y = (min_y + max_y) / 2
-        offset_x = svg_x + svg_width / 2 - center_x * scale
-        offset_y = svg_y + svg_height / 2 - center_y * scale
-
-        # Create clickable circles for modifiable atoms
         clickable_circles = []
-        for atom_idx in modifiable_atoms:
-            if atom_idx < len(coords):
-                pos = coords[atom_idx]
-                # Convert molecule coordinates to SVG coordinates
-                svg_x_pos = offset_x + pos.x * scale
-                svg_y_pos = offset_y + pos.y * scale
+        conf = mol.GetConformer()
+        
+        # First, try to use RDKit's GetDrawCoords if available (most accurate)
+        if draw_coords_dict:
+            for atom_idx in modifiable_atoms:
+                if atom_idx in draw_coords_dict:
+                    svg_x_pos, svg_y_pos = draw_coords_dict[atom_idx]
+                    clickable_circles.append(
+                        f'<circle cx="{svg_x_pos:.2f}" cy="{svg_y_pos:.2f}" r="15" '
+                        f'fill="rgba(43, 140, 255, 0.2)" stroke="#2b8cff" stroke-width="2" '
+                        f'cursor="pointer" data-atom-id="{atom_idx}" class="clickable-atom" '
+                        f'style="pointer-events: all;"/>'
+                    )
+        
+        # Fallback: Calculate from molecule coordinates if SVG parsing didn't work
+        if not clickable_circles:
+            conf = mol.GetConformer()
+            coords = [conf.GetAtomPosition(i) for i in range(mol.GetNumAtoms())]
+            if not coords:
+                return svg_text
+            
+            # Parse SVG viewBox (RDKit may or may not include it)
+            viewbox_match = re.search(r'viewBox="([^"]*)"', svg_text)
+            if viewbox_match:
+                viewbox_parts = viewbox_match.group(1).split()
+                if len(viewbox_parts) >= 4:
+                    vb_x = float(viewbox_parts[0])
+                    vb_y = float(viewbox_parts[1])
+                    vb_width = float(viewbox_parts[2])
+                    vb_height = float(viewbox_parts[3])
+                else:
+                    vb_x, vb_y, vb_width, vb_height = 0, 0, width, height
+            else:
+                # No viewBox - RDKit uses pixel coordinates directly
+                vb_x, vb_y, vb_width, vb_height = 0, 0, width, height
 
-                # Create a visible clickable circle with an outline for easier discovery
-                clickable_circles.append(
-                    f'<circle cx="{svg_x_pos:.2f}" cy="{svg_y_pos:.2f}" r="15" '
-                    f'fill="none" stroke="#2b8cff" stroke-width="2" cursor="pointer" '
-                    f'data-atom-id="{atom_idx}" class="clickable-atom" '
-                    f'style="pointer-events: all;"/>'
-                )
+            # Get molecule bounds
+            min_x = min(c.x for c in coords)
+            max_x = max(c.x for c in coords)
+            min_y = min(c.y for c in coords)
+            max_y = max(c.y for c in coords)
+            mol_width = max_x - min_x if max_x != min_x else 1
+            mol_height = max_y - min_y if max_y != min_y else 1
+
+            # RDKit drawer uses padding (default 0.05 or 5% margin on each side)
+            # Get actual padding from drawer options if available
+            padding = 0.05
+            if drawer_opts is not None:
+                try:
+                    padding = getattr(drawer_opts, 'padding', 0.05)
+                except:
+                    pass
+            elif drawer is not None:
+                try:
+                    opts = drawer.drawOptions()
+                    padding = getattr(opts, 'padding', 0.05)
+                except:
+                    pass
+            
+            # Calculate available drawing area
+            if vb_width > 0:
+                available_width = vb_width * (1 - 2 * padding)
+                available_height = vb_height * (1 - 2 * padding)
+                draw_center_x = vb_x + vb_width / 2
+                draw_center_y = vb_y + vb_height / 2
+            else:
+                # No viewBox - use pixel dimensions
+                available_width = width * (1 - 2 * padding)
+                available_height = height * (1 - 2 * padding)
+                draw_center_x = width / 2
+                draw_center_y = height / 2
+            
+            # Calculate scale (RDKit uses the smaller scale to maintain aspect ratio)
+            scale_x = available_width / mol_width if mol_width > 0 else 1
+            scale_y = available_height / mol_height if mol_height > 0 else 1
+            scale = min(scale_x, scale_y)
+
+            # RDKit centers the molecule in the drawing area
+            mol_center_x = (min_x + max_x) / 2
+            mol_center_y = (min_y + max_y) / 2
+            
+            # Calculate offset to center molecule
+            # RDKit centers the molecule in the drawing area
+            # SVG and RDKit both use Y-axis increasing downward (no flip needed)
+            offset_x = draw_center_x - mol_center_x * scale
+            offset_y = draw_center_y - mol_center_y * scale
+
+            # Create clickable circles
+            for atom_idx in modifiable_atoms:
+                if 0 <= atom_idx < len(coords):
+                    pos = coords[atom_idx]
+                    svg_x_pos = offset_x + pos.x * scale
+                    svg_y_pos = offset_y + pos.y * scale
+
+                    clickable_circles.append(
+                        f'<circle cx="{svg_x_pos:.2f}" cy="{svg_y_pos:.2f}" r="15" '
+                        f'fill="rgba(43, 140, 255, 0.2)" stroke="#2b8cff" stroke-width="2" '
+                        f'cursor="pointer" data-atom-id="{atom_idx}" class="clickable-atom" '
+                        f'style="pointer-events: all;"/>'
+                    )
 
         # Insert the clickable circles before closing </svg> tag
         if clickable_circles:
