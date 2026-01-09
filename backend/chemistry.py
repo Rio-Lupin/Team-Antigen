@@ -598,10 +598,10 @@ def smiles_to_svg(
         AllChem.Compute2DCoords(mol)
 
     drawer = rdMolDraw2D.MolDraw2DSVG(width, height)
-    
+
     # Get drawer options to understand coordinate system
     drawer_opts = drawer.drawOptions()
-    
+
     # Configure highlighting if atom index is provided
     highlight_atoms = []
     highlight_bonds = []
@@ -631,7 +631,7 @@ def smiles_to_svg(
     drawer.FinishDrawing()
 
     svg_text = drawer.GetDrawingText()
-    
+
     # Get actual drawn coordinates using RDKit's GetDrawCoords
     # This gives us the exact screen positions after drawing (most accurate method)
     draw_coords_dict = {}
@@ -646,7 +646,9 @@ def smiles_to_svg(
                         # Point2D has x and y attributes
                         draw_coords_dict[atom_idx] = (float(pos.x), float(pos.y))
                     except Exception as e:
-                        logger.debug(f"Could not get draw coords for atom {atom_idx}: {str(e)}")
+                        logger.debug(
+                            f"Could not get draw coords for atom {atom_idx}: {str(e)}"
+                        )
                         pass
         except Exception as e:
             logger.debug(f"Could not use GetDrawCoords: {str(e)}")
@@ -654,26 +656,40 @@ def smiles_to_svg(
     # Add clickable overlays for modifiable atoms
     if modifiable_atoms:
         svg_text = _add_clickable_atoms_to_svg(
-            svg_text, mol, modifiable_atoms, width, height, drawer, drawer_opts, draw_coords_dict
+            svg_text,
+            mol,
+            modifiable_atoms,
+            width,
+            height,
+            drawer,
+            drawer_opts,
+            draw_coords_dict,
         )
 
     return svg_text
 
 
 def _add_clickable_atoms_to_svg(
-    svg_text: str, mol: Chem.Mol, modifiable_atoms: List[int], width: int, height: int, drawer=None, drawer_opts=None, draw_coords_dict: Optional[Dict[int, Tuple[float, float]]] = None
+    svg_text: str,
+    mol: Chem.Mol,
+    modifiable_atoms: List[int],
+    width: int,
+    height: int,
+    drawer=None,
+    drawer_opts=None,
+    draw_coords_dict: Optional[Dict[int, Tuple[float, float]]] = None,
 ) -> str:
     """
     Add clickable overlay circles to SVG for modifiable atoms.
     Inserts transparent circles with data attributes for JavaScript interaction.
-    
+
     Extracts actual atom positions from SVG text elements that RDKit draws,
     which provides the most accurate coordinates matching the rendered atoms.
     """
     try:
         clickable_circles = []
         conf = mol.GetConformer()
-        
+
         # First, try to use RDKit's GetDrawCoords if available (most accurate)
         if draw_coords_dict:
             for atom_idx in modifiable_atoms:
@@ -685,14 +701,14 @@ def _add_clickable_atoms_to_svg(
                         f'cursor="pointer" data-atom-id="{atom_idx}" class="clickable-atom" '
                         f'style="pointer-events: all;"/>'
                     )
-        
+
         # Fallback: Calculate from molecule coordinates if SVG parsing didn't work
         if not clickable_circles:
             conf = mol.GetConformer()
             coords = [conf.GetAtomPosition(i) for i in range(mol.GetNumAtoms())]
             if not coords:
                 return svg_text
-            
+
             # Parse SVG viewBox (RDKit may or may not include it)
             viewbox_match = re.search(r'viewBox="([^"]*)"', svg_text)
             if viewbox_match:
@@ -721,16 +737,16 @@ def _add_clickable_atoms_to_svg(
             padding = 0.05
             if drawer_opts is not None:
                 try:
-                    padding = getattr(drawer_opts, 'padding', 0.05)
+                    padding = getattr(drawer_opts, "padding", 0.05)
                 except:
                     pass
             elif drawer is not None:
                 try:
                     opts = drawer.drawOptions()
-                    padding = getattr(opts, 'padding', 0.05)
+                    padding = getattr(opts, "padding", 0.05)
                 except:
                     pass
-            
+
             # Calculate available drawing area
             if vb_width > 0:
                 available_width = vb_width * (1 - 2 * padding)
@@ -743,7 +759,7 @@ def _add_clickable_atoms_to_svg(
                 available_height = height * (1 - 2 * padding)
                 draw_center_x = width / 2
                 draw_center_y = height / 2
-            
+
             # Calculate scale (RDKit uses the smaller scale to maintain aspect ratio)
             scale_x = available_width / mol_width if mol_width > 0 else 1
             scale_y = available_height / mol_height if mol_height > 0 else 1
@@ -752,7 +768,7 @@ def _add_clickable_atoms_to_svg(
             # RDKit centers the molecule in the drawing area
             mol_center_x = (min_x + max_x) / 2
             mol_center_y = (min_y + max_y) / 2
-            
+
             # Calculate offset to center molecule
             # RDKit centers the molecule in the drawing area
             # SVG and RDKit both use Y-axis increasing downward (no flip needed)
@@ -966,19 +982,27 @@ def validate_and_optimize_compound(
 
         # Generate visualization with highlighted modified atom
         try:
+            # Get modifiable atoms for the new molecule
+            modifiable_atoms = get_modifiable_atoms(new_smiles)
+
             # Try to find the modified atom in the new molecule
             highlight_idx = _find_modified_atom_in_new_molecule(
                 new_smiles, new_group_smiles, atom_idx
             )
             result["molecule_svg"] = smiles_to_svg(
-                new_smiles, highlight_atom_idx=highlight_idx
+                new_smiles,
+                highlight_atom_idx=highlight_idx,
+                modifiable_atoms=modifiable_atoms,
             )
         except Exception as e:
             logger.warning(f"Could not generate SVG: {str(e)}")
             # Try without highlighting as fallback
             try:
+                modifiable_atoms = get_modifiable_atoms(new_smiles)
                 result["molecule_svg"] = smiles_to_svg(
-                    new_smiles, highlight_atom_idx=None
+                    new_smiles,
+                    highlight_atom_idx=None,
+                    modifiable_atoms=modifiable_atoms,
                 )
             except:
                 pass

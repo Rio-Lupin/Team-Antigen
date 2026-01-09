@@ -140,30 +140,33 @@
                 </div>
               </div>
             </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+
+        {% endblock content %}
+
     </div>
+    <div>
 
-    {% endblock content %}
+      {% block footer %}
+      <footer class="d-flex flex-column align-items-center fs-6 text-body-tertiary py-5">
+        <span>Stack the Future 2026 - New York, New York</span>
+        <span>Copyright &copy; Schrodinger Inc. 2026</span>
+      </footer>
+      {% endblock footer %}
 
-  </div>
-  <div>
-
-    {% block footer %}
-    <footer class="d-flex flex-column align-items-center fs-6 text-body-tertiary py-5">
-      <span>Stack the Future 2026 - New York, New York</span>
-      <span>Copyright &copy; Schrodinger Inc. 2026</span>
-    </footer>
-    {% endblock footer %}
-
-  </div>
+    </div>
   </div>
 
   {% block scripts %}
   <script>
-    //Display molecules & SVG's
+    // Global variables to store current drug state
+    let currentDrugSmiles = {};
+    let currentDrugMetadata = {};
 
+    //Display molecules & SVG's
     document.getElementById('protein-search-field').addEventListener('input', function (e) {
       const proteinName = e.target.value.trim();
 
@@ -186,11 +189,16 @@
             // Get the compound_id from your proteins array or use drug name
             return fetch(`/api/molecule-metadata/${drug.name}`)
               .then(res => res.json())
-              .then(metadata => ({
-                name: drug.name,
-                svg: metadata.molecule_svg,
-                smiles: drug.smiles
-              }))
+              .then(metadata => {
+                // Store metadata for later use
+                currentDrugSmiles[drug.name] = drug.smiles;
+                currentDrugMetadata[drug.name] = metadata;
+                return {
+                  name: drug.name,
+                  svg: metadata.molecule_svg,
+                  smiles: drug.smiles
+                };
+              })
               .catch(err => ({
                 name: drug.name,
                 svg: '<p>Error loading molecule</p>',
@@ -203,10 +211,11 @@
             let html = '<div class="drug-grid row">';
 
             drugsWithMolecules.forEach(drug => {
+              const drugId = `drug-${drug.name.replace(/\s+/g, '-')}`;
               html += `
             <div class="col-md-12 drug-container mb-3">
-              <div class="card" onclick="handleDrugClick(event, '${drug.name}', '${drug.smiles}')">
-                <div class="card-body">
+              <div class="card" data-drug-name="${drug.name}" data-drug-smiles="${drug.smiles}">
+                <div class="card-body" id="${drugId}-container">
                   ${drug.svg}
                 </div>
                 <div class="card-footer">
@@ -220,6 +229,9 @@
 
             html += '</div>';
             document.getElementById('drugResults').innerHTML = html;
+
+            // After adding SVGs, attach click handlers to clickable atoms
+            attachAtomClickHandlers();
           });
         })
         .catch(error => {
@@ -312,7 +324,7 @@
 
     // Handle when a drug card is clicked (ignore clicks on atom overlays)
     function handleDrugClick(event, drugName, smiles) {
-      if (event?.target?.closest('[data-atom-idx]')) {
+      if (event?.target?.closest('.clickable-atom')) {
         return; // Let atom overlay clicks be handled elsewhere
       }
 
@@ -328,6 +340,202 @@
           console.log('Drug selected:', drugName);
         })
         .catch(err => console.error('Error loading drug metadata:', err));
+    }
+
+    // Attach click handlers to all clickable atom circles
+    function attachAtomClickHandlers() {
+      // Remove any existing dropdown
+      const existingDropdown = document.getElementById('r-group-dropdown');
+      if (existingDropdown) {
+        existingDropdown.remove();
+      }
+
+      // Add click handlers to all clickable atom circles
+      document.querySelectorAll('.clickable-atom').forEach(circle => {
+        circle.addEventListener('click', function(e) {
+          e.stopPropagation(); // Prevent drug card click
+          
+          const atomId = this.getAttribute('data-atom-id');
+          const card = this.closest('.card');
+          const drugName = card.getAttribute('data-drug-name');
+          const smiles = card.getAttribute('data-drug-smiles') || currentDrugSmiles[drugName];
+          const metadata = currentDrugMetadata[drugName];
+
+          if (!metadata || !metadata.r_group_options) {
+            alert('R-group options not available for this molecule');
+            return;
+          }
+
+          if (!smiles) {
+            alert('SMILES string not available for this molecule');
+            return;
+          }
+
+          // Get position of clicked circle for dropdown placement
+          const rect = this.getBoundingClientRect();
+          
+          // Show dropdown menu near the clicked atom
+          showRGroupDropdown(rect, drugName, smiles, atomId, metadata.r_group_options);
+        });
+      });
+    }
+
+    // Show R-group dropdown menu
+    function showRGroupDropdown(circleRect, drugName, smiles, atomId, rGroupOptions) {
+      // Remove existing dropdown if any
+      const existingDropdown = document.getElementById('r-group-dropdown');
+      if (existingDropdown) {
+        existingDropdown.remove();
+      }
+
+      // Create dropdown menu
+      const dropdown = document.createElement('div');
+      dropdown.id = 'r-group-dropdown';
+      dropdown.className = 'dropdown-menu show position-fixed';
+      dropdown.style.cssText = `
+        top: ${circleRect.top + circleRect.height + 10}px;
+        left: ${circleRect.left}px;
+        min-width: 200px;
+        max-height: 300px;
+        overflow-y: auto;
+        z-index: 9999;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        display: block;
+      `;
+
+      // Add header
+      const header = document.createElement('div');
+      header.className = 'dropdown-header';
+      header.innerHTML = `<strong>Select R-group for Atom ${atomId}</strong>`;
+      dropdown.appendChild(header);
+
+      // Add R-group options
+      Object.keys(rGroupOptions).forEach(groupName => {
+        const option = document.createElement('a');
+        option.className = 'dropdown-item';
+        option.href = '#';
+        option.textContent = groupName;
+        option.addEventListener('click', function(e) {
+          e.preventDefault();
+          applyRGroupSubstitution(drugName, smiles, atomId, groupName);
+          dropdown.remove();
+        });
+        dropdown.appendChild(option);
+      });
+
+      // Add cancel option
+      const divider = document.createElement('div');
+      divider.className = 'dropdown-divider';
+      dropdown.appendChild(divider);
+      
+      const cancelOption = document.createElement('a');
+      cancelOption.className = 'dropdown-item text-danger';
+      cancelOption.href = '#';
+      cancelOption.textContent = 'Cancel';
+      cancelOption.addEventListener('click', function(e) {
+        e.preventDefault();
+        dropdown.remove();
+      });
+      dropdown.appendChild(cancelOption);
+
+      // Add to body
+      document.body.appendChild(dropdown);
+
+      // Close dropdown when clicking outside
+      setTimeout(() => {
+        document.addEventListener('click', function closeDropdown(e) {
+          if (!dropdown.contains(e.target) && !e.target.closest('.clickable-atom')) {
+            dropdown.remove();
+            document.removeEventListener('click', closeDropdown);
+          }
+        });
+      }, 100);
+    }
+
+    // Apply R-group substitution
+    async function applyRGroupSubstitution(drugName, smiles, atomId, rGroupName) {
+      try {
+        // Find the drug card
+        const card = Array.from(document.querySelectorAll('.card')).find(c => 
+          c.getAttribute('data-drug-name') === drugName
+        );
+        
+        if (!card) {
+          alert('Could not find drug card');
+          return;
+        }
+
+        // Show loading indicator on the card
+        const loadingIndicator = document.createElement('div');
+        loadingIndicator.className = 'alert alert-info position-absolute';
+        loadingIndicator.style.cssText = `
+          top: 10px;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 10000;
+          white-space: nowrap;
+        `;
+        loadingIndicator.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Applying substitution...';
+        card.style.position = 'relative';
+        card.appendChild(loadingIndicator);
+
+        const response = await fetch('/api/modify-drug', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            smiles: smiles,
+            atom_idx: parseInt(atomId),
+            new_group: rGroupName
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to modify drug');
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+          const container = card.querySelector('.card-body');
+          
+          // Update the SVG
+          if (data.molecule_svg) {
+            container.innerHTML = data.molecule_svg;
+            
+            // Update stored SMILES
+            currentDrugSmiles[drugName] = data.new_smiles;
+            
+            // Update card data attribute
+            card.setAttribute('data-drug-smiles', data.new_smiles);
+            
+            // Update metadata
+            if (currentDrugMetadata[drugName]) {
+              currentDrugMetadata[drugName].molecule_svg = data.molecule_svg;
+            }
+            
+            // Re-attach click handlers to new SVG
+            setTimeout(() => {
+              attachAtomClickHandlers();
+            }, 100);
+            
+            // Update analytics
+            updateAnalytics(data);
+            
+            console.log(`Applied ${rGroupName} to atom ${atomId} of ${drugName}`);
+          }
+        } else {
+          alert('Error: ' + (data.error || 'Failed to modify drug'));
+        }
+
+        loadingIndicator.remove();
+      } catch (error) {
+        console.error('Error applying R-group substitution:', error);
+        alert('Error: ' + error.message);
+        document.querySelectorAll('.position-absolute').forEach(el => {
+          if (el.innerHTML.includes('spinner')) el.remove();
+        });
+      }
     }
 
     document.addEventListener('DOMContentLoaded', () => {
