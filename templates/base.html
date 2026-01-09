@@ -37,54 +37,58 @@
 
       {% block content %}
 
-  <div class="position-relative pt-5"> <div class="position-absolute top-0 end-0 mt-2 me-2">
-        <button type="button" class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#infoModal">
-          <i class="bi bi-info-circle"></i> Demo Info
-        </button>
-    </div>
-
-    <div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-lg"> <div class="modal-content">
-          <div class="modal-header">
-            <h1 class="modal-title fs-5" id="infoModalLabel">Platform Overview</h1>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <div class="p-3">
-                <h3 class="text-primary mb-4">Accelerating Drug Discovery</h3>
-                <p class="lead">In the chemical industry, synthesizing a single drug candidate takes <strong>6 months and $100,000</strong>, yet 99% of candidates fail in clinical trials.</p>
-                <hr>
-                <p>Our tool helps chemists process scientific data to identify and optimize the 1% that succeed. This demo focuses on drugs targeting proteins that drive <strong>Renal Cell Carcinoma</strong>.</p>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-      <form action="/" method="GET">
-        <div class="input-group">
-          Protein: <input id="protein-search-field" class="form-control" type="text" name="query" placeholder="Protein"
-            value="">
-          <button class="btn btn-primary" type="submit"></button>
+      <div class="position-relative pt-5">
+        <div class="position-absolute top-0 end-0 mt-2 me-2">
+          <button type="button" class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#infoModal">
+            <i class="bi bi-info-circle"></i> Demo Info
+          </button>
         </div>
 
-        <div class="drug-grid">
-          <div class="drug-container">
-            <div class="card">
-              <img src="/compound-image?smiles=SO YOU NEED THAT COMPOOUND HERE&amp;highlight="
-                alt="CCC(Cl)C(N)C1=CC=CC=C1" class="card-img-top w-100 overflow-hidden" style="aspect-ratio: 1">
-
-              <h5 class="card-title text-truncate text-center" data-bs-toggle="tooltip" data-bs-title="compound name">
-                compound name</h5>
+        <div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h1 class="modal-title fs-5" id="infoModalLabel">Platform Overview</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <div class="p-3">
+                  <h3 class="text-primary mb-4">Accelerating Drug Discovery</h3>
+                  <p class="lead">In the chemical industry, synthesizing a single drug candidate takes <strong>6 months
+                      and $100,000</strong>, yet 99% of candidates fail in clinical trials.</p>
+                  <hr>
+                  <p>Our tool helps chemists process scientific data to identify and optimize the 1% that succeed. This
+                    demo focuses on drugs targeting proteins that drive <strong>Renal Cell Carcinoma</strong>.</p>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+              </div>
             </div>
           </div>
         </div>
 
-       
-      
+        <form action="/" method="GET">
+          <div class="input-group">
+            Protein: <input id="protein-search-field" class="form-control" type="text" name="query"
+              placeholder="Protein" value="">
+            <button class="btn btn-primary" type="submit"></button>
+          </div>
+
+          <div class="drug-grid">
+            <div class="drug-container">
+              <div class="card">
+                <img src="/compound-image?smiles=SO YOU NEED THAT COMPOOUND HERE&amp;highlight="
+                  alt="CCC(Cl)C(N)C1=CC=CC=C1" class="card-img-top w-100 overflow-hidden" style="aspect-ratio: 1">
+
+                <h5 class="card-title text-truncate text-center" data-bs-toggle="tooltip" data-bs-title="compound name">
+                  compound name</h5>
+              </div>
+            </div>
+          </div>
+
+
+
           <div class="col-md-5">
             <div class="card shadow-sm h-100">
               <div class="card-body">
@@ -114,7 +118,8 @@
                   <ul class="list-group list-group-flush small">
                     <li class="list-group-item d-flex justify-content-between">MW: <span id="mw-val">-</span></li>
                     <li class="list-group-item d-flex justify-content-between">LogP: <span id="logp-val">-</span></li>
-                    <li class="list-group-item d-flex justify-content-between">H-Donors: <span id="hbd-val">-</span></li>
+                    <li class="list-group-item d-flex justify-content-between">H-Donors: <span id="hbd-val">-</span>
+                    </li>
                   </ul>
                 </div>
 
@@ -124,9 +129,9 @@
               </div>
             </div>
           </div>
-        </div>
+      </div>
 
-        {% endblock content %}
+      {% endblock content %}
 
     </div>
     <div>
@@ -143,14 +148,10 @@
 
   {% block scripts %}
   <script>
+    //Display molecules & SVG's
 
-  function updateAnalytics(data) {
-    document.getElementById('qed-val').innerText = (data.drug_likeness || 0).toFixed(2);
-    document.getElementById('sa-val').innerText = (data.stability_score || 0).toFixed(1);
-    document.getElementById('mw-val').innerText = Math.round(data.mw || 0);
-    document.getElementById('logp-val').innerText = (data.logp || 0).toFixed(2);
-    document.getElementById('hbd-val').innerText = Math.round(data.hbd || 0);
-  }
+    document.getElementById('protein-search-field').addEventListener('input', function (e) {
+      const proteinName = e.target.value.trim();
 
   </script>
   {% endblock scripts %}

@@ -13,24 +13,24 @@ app = Flask(__name__)
 # Protein Data
 proteins = [
     {
-        "id": "VEGF Receptor 2",
+        "id": "VEGFR",
         "drugs": [
-            {"name": "Sunitinib-", "compound": "placer1"},
+            {"name": "Sunitinib", "compound": "placer1"},
             {"name": "Cabozantinib", "compound": "placer2"},
         ],
     },
     {
-        "id": "PDGF Receptor beta",
+        "id": "PDGFR",
         "drugs": [
-            {"name": "Sunitinib-", "compound": "placer3"},
-            {"name": "Cabozantinib", "compound": "placer4"},
+            {"name": "Sunitinib", "compound": "placer1"},
+            {"name": "Cabozantinib", "compound": "placer2"},
         ],
     },
     {
         "id": "mTOR",
         "drugs": [
-            {"name": "Everolimus", "compound": "placer5"},
-            {"name": "Temsirolimus", "compound": "placer1"},
+            {"name": "Everolimus", "compound": "placer3"},
+            {"name": "Temsirolimus", "compound": "placer4"},
         ],
     },
 ]
@@ -39,7 +39,7 @@ COMPOUND_DATABASE = {
     "placer1": "CN1CC(C2=C(C1)C=CC(=C2)F)C3=C(NC(=C3)C)C=O",  # Sunitinib-like
     "placer2": "COC1=CC2=C(C=C1OCC3CCN(CC3)C4=CC=C(C=C4)F)N=CN=C2NC5=CC(=C(C=C5)Cl)F",
     "placer3": "Cc1c(C[NH+]2CCCC2)sc(NC(=O)Nc2ccc(Cl)cc2)c1",
-    # ... add others
+    "placer4": "COC1CC(CCC1OC(=O)C(CO)(CO)C)CC(C1OC(=O)C2CCCCN2C(=O)C(=O)C2(O)OC(CCC2C)CC(OC)C(=CC=CC=CC(CC(C(=O)C(C(C(=CC(C(=O)C1)C)C)O)OC)C)C)C)C"
 }
 
 
